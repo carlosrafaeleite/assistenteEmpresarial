@@ -24,6 +24,21 @@ public class Assistente {
 	@Column(name = "prompt_sistema", columnDefinition = "TEXT")
 	private String promptSistema;
 
+	@Column(name = "cor_primaria")
+	private String corPrimaria = "#2563EB";
+
+	@Column(name = "cor_secundaria")
+	private String corSecundaria = "#1E40AF";
+
+	@Column(name = "avatar_url")
+	private String avatarUrl;
+
+	@Column(name = "mensagem_boas_vindas", columnDefinition = "TEXT")
+	private String mensagemBoasVindas = "Olá! Como posso ajudar você hoje?";
+
+	@Column(name = "tom_voz")
+	private String tomVoz = "AMIGAVEL"; // AMIGAVEL, FORMAL, TECNICO
+
 	@Column(nullable = false)
 	private boolean ativo = true;
 
@@ -36,7 +51,6 @@ public class Assistente {
 	public Assistente() {
 	}
 
-	// Getters e Setters
 	public UUID getId() {
 		return id;
 	}
@@ -75,6 +89,46 @@ public class Assistente {
 
 	public void setPromptSistema(String promptSistema) {
 		this.promptSistema = promptSistema;
+	}
+
+	public String getCorPrimaria() {
+		return corPrimaria;
+	}
+
+	public void setCorPrimaria(String corPrimaria) {
+		this.corPrimaria = corPrimaria;
+	}
+
+	public String getCorSecundaria() {
+		return corSecundaria;
+	}
+
+	public void setCorSecundaria(String corSecundaria) {
+		this.corSecundaria = corSecundaria;
+	}
+
+	public String getAvatarUrl() {
+		return avatarUrl;
+	}
+
+	public void setAvatarUrl(String avatarUrl) {
+		this.avatarUrl = avatarUrl;
+	}
+
+	public String getMensagemBoasVindas() {
+		return mensagemBoasVindas;
+	}
+
+	public void setMensagemBoasVindas(String mensagemBoasVindas) {
+		this.mensagemBoasVindas = mensagemBoasVindas;
+	}
+
+	public String getTomVoz() {
+		return tomVoz;
+	}
+
+	public void setTomVoz(String tomVoz) {
+		this.tomVoz = tomVoz;
 	}
 
 	public boolean isAtivo() {

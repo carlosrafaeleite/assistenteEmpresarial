@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -12,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -44,13 +47,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             
             if (jwtService.isTokenValido(jwt, userEmail)) {
-                // Mágica Multi-Tenant: Lê a empresa do token e joga na thread atual
+                // Multi-Tenant: Lê a empresa do token e define na thread atual
                 String empresaId = jwtService.extrairEmpresaId(jwt);
-                TenantContext.setTenantId(UUID.fromString(empresaId));
+                if (empresaId != null) {
+                    TenantContext.setTenantId(UUID.fromString(empresaId));
+                }
+
+                // Carrega a autoridade com base no perfil (ex: ROLE_ADMIN, ROLE_FUNCIONARIO)
+                String perfil = jwtService.extrairPerfil(jwt);
+                List<GrantedAuthority> authorities = (perfil != null && !perfil.trim().isEmpty())
+                        ? List.of(new SimpleGrantedAuthority("ROLE_" + perfil.trim().toUpperCase()))
+                        : Collections.emptyList();
 
                 // Avisa ao Spring Security que o usuário está autenticado
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userEmail, null, Collections.emptyList()
+                        userEmail, null, authorities
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);

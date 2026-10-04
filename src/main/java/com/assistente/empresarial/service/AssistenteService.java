@@ -2,6 +2,8 @@ package com.assistente.empresarial.service;
 
 import com.assistente.empresarial.dto.AssistenteRequestDTO;
 import com.assistente.empresarial.dto.AssistenteResponseDTO;
+import com.assistente.empresarial.exception.BusinessException;
+import com.assistente.empresarial.exception.ResourceNotFoundException;
 import com.assistente.empresarial.model.Assistente;
 import com.assistente.empresarial.repository.AssistenteRepository;
 import com.assistente.empresarial.security.TenantContext;
@@ -25,17 +27,17 @@ public class AssistenteService {
     }
 
     public AssistenteResponseDTO criar(AssistenteRequestDTO request) {
+        UUID empresaId = obterEmpresaIdContexto();
+
         Assistente assistente = modelMapper.map(request, Assistente.class);
-        
-        // Pega o ID da empresa logada direto do JWT extraído no filtro
-        assistente.setEmpresaId(TenantContext.getTenantId());
+        assistente.setEmpresaId(empresaId);
         
         Assistente salvo = assistenteRepository.save(assistente);
         return modelMapper.map(salvo, AssistenteResponseDTO.class);
     }
 
     public List<AssistenteResponseDTO> listarTodos() {
-        UUID empresaId = TenantContext.getTenantId();
+        UUID empresaId = obterEmpresaIdContexto();
         return assistenteRepository.findByEmpresaId(empresaId)
                 .stream()
                 .map(assistente -> modelMapper.map(assistente, AssistenteResponseDTO.class))
@@ -53,6 +55,11 @@ public class AssistenteService {
         assistente.setNome(request.getNome());
         assistente.setDescricao(request.getDescricao());
         assistente.setPromptSistema(request.getPromptSistema());
+        if (request.getCorPrimaria() != null) assistente.setCorPrimaria(request.getCorPrimaria());
+        if (request.getCorSecundaria() != null) assistente.setCorSecundaria(request.getCorSecundaria());
+        if (request.getAvatarUrl() != null) assistente.setAvatarUrl(request.getAvatarUrl());
+        if (request.getMensagemBoasVindas() != null) assistente.setMensagemBoasVindas(request.getMensagemBoasVindas());
+        if (request.getTomVoz() != null) assistente.setTomVoz(request.getTomVoz());
         assistente.setAtivo(request.isAtivo());
         assistente.setUpdatedAt(LocalDateTime.now());
         
@@ -67,8 +74,16 @@ public class AssistenteService {
 
     // Método privado centralizado para garantir o isolamento dos dados
     private Assistente buscarEntidadeSegura(UUID id) {
-        UUID empresaId = TenantContext.getTenantId();
+        UUID empresaId = obterEmpresaIdContexto();
         return assistenteRepository.findByIdAndEmpresaId(id, empresaId)
-                .orElseThrow(() -> new RuntimeException("Assistente não encontrado ou não pertence à empresa."));
+                .orElseThrow(() -> new ResourceNotFoundException("Assistente não encontrado ou não pertence à empresa."));
+    }
+
+    private UUID obterEmpresaIdContexto() {
+        UUID tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new BusinessException("Contexto de empresa não identificado para esta operação.");
+        }
+        return tenantId;
     }
 }

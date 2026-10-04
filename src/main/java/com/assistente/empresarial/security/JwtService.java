@@ -1,6 +1,5 @@
 package com.assistente.empresarial.security;
 
-
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +50,10 @@ public class JwtService {
     
     public String extrairEmpresaId(String token) {
         return extrairTodasClaims(token).get("empresaId", String.class);
+    }
+
+    public String extrairPerfil(String token) {
+        return extrairTodasClaims(token).get("perfil", String.class);
     }
 
     private Claims extrairTodasClaims(String token) {

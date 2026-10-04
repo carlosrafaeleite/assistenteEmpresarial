@@ -3,6 +3,7 @@ package com.assistente.empresarial.controller;
 import com.assistente.empresarial.dto.UsuarioRequestDTO;
 import com.assistente.empresarial.dto.UsuarioResponseDTO;
 import com.assistente.empresarial.service.UsuarioService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public ResponseEntity<UsuarioResponseDTO> criar(@RequestBody UsuarioRequestDTO request) {
+    public ResponseEntity<UsuarioResponseDTO> criar(@Valid @RequestBody UsuarioRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.criar(request));
     }
 
@@ -31,7 +32,7 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UsuarioResponseDTO> atualizar(@PathVariable UUID id, @RequestBody UsuarioRequestDTO request) {
+    public ResponseEntity<UsuarioResponseDTO> atualizar(@PathVariable UUID id, @Valid @RequestBody UsuarioRequestDTO request) {
         return ResponseEntity.ok(usuarioService.atualizar(id, request));
     }
 

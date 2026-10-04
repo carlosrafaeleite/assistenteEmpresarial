@@ -8,10 +8,16 @@ public class AssistenteResponseDTO {
 	private String nome;
 	private String descricao;
 	private String promptSistema;
+	private String corPrimaria;
+	private String corSecundaria;
+	private String avatarUrl;
+	private String mensagemBoasVindas;
+	private String tomVoz;
 	private boolean ativo;
 	private LocalDateTime createdAt;
 
-	// Getters e Setters (omitidos para brevidade, mas devem ser gerados)
+	public AssistenteResponseDTO() {}
+
 	public UUID getId() {
 		return id;
 	}
@@ -42,6 +48,46 @@ public class AssistenteResponseDTO {
 
 	public void setPromptSistema(String promptSistema) {
 		this.promptSistema = promptSistema;
+	}
+
+	public String getCorPrimaria() {
+		return corPrimaria;
+	}
+
+	public void setCorPrimaria(String corPrimaria) {
+		this.corPrimaria = corPrimaria;
+	}
+
+	public String getCorSecundaria() {
+		return corSecundaria;
+	}
+
+	public void setCorSecundaria(String corSecundaria) {
+		this.corSecundaria = corSecundaria;
+	}
+
+	public String getAvatarUrl() {
+		return avatarUrl;
+	}
+
+	public void setAvatarUrl(String avatarUrl) {
+		this.avatarUrl = avatarUrl;
+	}
+
+	public String getMensagemBoasVindas() {
+		return mensagemBoasVindas;
+	}
+
+	public void setMensagemBoasVindas(String mensagemBoasVindas) {
+		this.mensagemBoasVindas = mensagemBoasVindas;
+	}
+
+	public String getTomVoz() {
+		return tomVoz;
+	}
+
+	public void setTomVoz(String tomVoz) {
+		this.tomVoz = tomVoz;
 	}
 
 	public boolean isAtivo() {

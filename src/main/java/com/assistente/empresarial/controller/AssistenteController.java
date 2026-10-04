@@ -3,6 +3,7 @@ package com.assistente.empresarial.controller;
 import com.assistente.empresarial.dto.AssistenteRequestDTO;
 import com.assistente.empresarial.dto.AssistenteResponseDTO;
 import com.assistente.empresarial.service.AssistenteService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class AssistenteController {
     }
 
     @PostMapping
-    public ResponseEntity<AssistenteResponseDTO> criar(@RequestBody AssistenteRequestDTO request) {
+    public ResponseEntity<AssistenteResponseDTO> criar(@Valid @RequestBody AssistenteRequestDTO request) {
         AssistenteResponseDTO response = assistenteService.criar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -37,7 +38,7 @@ public class AssistenteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AssistenteResponseDTO> atualizar(@PathVariable UUID id, @RequestBody AssistenteRequestDTO request) {
+    public ResponseEntity<AssistenteResponseDTO> atualizar(@PathVariable UUID id, @Valid @RequestBody AssistenteRequestDTO request) {
         return ResponseEntity.ok(assistenteService.atualizar(id, request));
     }
 

@@ -1,9 +1,10 @@
-package com.assistente.empresarial.service; // Ajuste para o seu pacote correto
+package com.assistente.empresarial.service;
 
 import com.assistente.empresarial.dto.UsuarioResponseDTO;
-import com.assistente.empresarial.model.Usuario; // Ajuste para o seu pacote da entidade
+import com.assistente.empresarial.model.Usuario;
 import com.assistente.empresarial.repository.UsuarioRepository;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +34,7 @@ public class AuthService {
                 return usuario;
             }
         }
-        throw new RuntimeException("E-mail ou senha inválidos, ou usuário inativo.");
+        throw new BadCredentialsException("E-mail ou senha inválidos, ou usuário inativo.");
     }
 
     // Isola a responsabilidade do ModelMapper

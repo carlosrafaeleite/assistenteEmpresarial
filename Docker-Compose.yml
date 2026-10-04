@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres-ai:
+    image: pgvector/pgvector:pg16
+    container_name: corporate-postgres-16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 221076
+      POSTGRES_DB: assistenteEmpresarial
+    ports:
+      - "5433:5432" # Expõe na 5433 para não chocar com o teu Postgres 9.5
+    volumes:
+      - corporate_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  corporate_db_data:
+    name: corporate_ai_postgres_data
