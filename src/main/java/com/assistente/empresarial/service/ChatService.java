@@ -233,6 +233,7 @@ public class ChatService {
         sb.append("\n1. Se houver trechos de documentos fornecidos abaixo, responda à dúvida baseando-se estritamente neles.");
         sb.append("\n2. Caso a resposta não esteja nos trechos ou não haja certeza, informe cordialmente que não localizou essa informação e oriente a falar com um humano.");
         sb.append("\n3. Seja claro, conciso e aja de forma muito natural. Não use jargões robóticos.");
+        sb.append("\n4. É **estritamente proibido** inventar, deduzir, supor ou trazer conhecimentos externos. Se um plano, número ou dado não estiver explicitamente escrito nos documentos, diga apenas que não encontrou essa informação.");
 
         if (contexto != null && !contexto.trim().isEmpty()) {
             sb.append("\n\n--- DOCUMENTAÇÃO / REGRAS DA EMPRESA ---\n");
