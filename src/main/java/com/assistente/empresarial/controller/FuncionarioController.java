@@ -22,9 +22,26 @@ public class FuncionarioController {
         return ResponseEntity.ok(funcionarioService.listarDaEmpresa());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<Funcionario> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(funcionarioService.buscarPorId(id));
+    }
+
     @PostMapping
     public ResponseEntity<Funcionario> criar(@Valid @RequestBody FuncionarioRequestDTO dto) {
         Funcionario novo = funcionarioService.criar(dto);
         return ResponseEntity.ok(novo);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Funcionario> atualizar(@PathVariable Long id, @Valid @RequestBody FuncionarioRequestDTO dto) {
+        Funcionario atualizado = funcionarioService.atualizar(id, dto);
+        return ResponseEntity.ok(atualizado);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        funcionarioService.excluir(id);
+        return ResponseEntity.noContent().build();
     }
 }

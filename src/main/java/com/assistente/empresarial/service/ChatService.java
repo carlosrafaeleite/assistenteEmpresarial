@@ -3,6 +3,7 @@ package com.assistente.empresarial.service;
 import com.assistente.empresarial.dto.ChatRequestDTO;
 import com.assistente.empresarial.dto.ChatResponseDTO;
 import com.assistente.empresarial.dto.WidgetConfigResponseDTO;
+import com.assistente.empresarial.enuns.StatusConversa;
 import com.assistente.empresarial.exception.BusinessException;
 import com.assistente.empresarial.exception.ResourceNotFoundException;
 import com.assistente.empresarial.model.*;
@@ -31,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -62,17 +62,24 @@ public class ChatService {
         this.embeddingStore = embeddingStore;
     }
 
-    public WidgetConfigResponseDTO obterConfiguracaoWidget(String slugEmpresa) {
+    public WidgetConfigResponseDTO obterConfiguracaoWidget(String slugEmpresa, String slugAssistente) {
         Empresa empresa = empresaRepository.findBySlug(slugEmpresa)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com slug: " + slugEmpresa));
 
-        Assistente assistente = buscarAssistentePadrao(empresa.getId());
+        Assistente assistente = assistenteRepository.findBySlugAndEmpresaId(slugAssistente, empresa.getId())
+                .orElseGet(() -> buscarAssistentePadrao(empresa.getId()));
 
         WidgetConfigResponseDTO dto = new WidgetConfigResponseDTO();
         dto.setEmpresaNome(empresa.getNome());
         dto.setEmpresaSlug(empresa.getSlug());
         dto.setAssistenteId(assistente.getId());
-        dto.setAssistenteNome(assistente.getNome());
+
+        // CORREÇÃO: Pega diretamente o nome_bot da tabela Empresa se ele existir, senão usa o do assistente
+        String nomeBotReal = (empresa.getNomeBot() != null && !empresa.getNomeBot().trim().isEmpty())
+                ? empresa.getNomeBot()
+                : assistente.getNome();
+
+        dto.setAssistenteNome(nomeBotReal);
         dto.setCorPrimaria(assistente.getCorPrimaria());
         dto.setCorSecundaria(assistente.getCorSecundaria());
         dto.setAvatarUrl(assistente.getAvatarUrl());
@@ -82,15 +89,14 @@ public class ChatService {
         return dto;
     }
 
+
     @Transactional
-    public ChatResponseDTO responderPublico(String slugEmpresa, ChatRequestDTO request) {
+    public ChatResponseDTO responderPublico(String slugEmpresa, String slugAssistente, ChatRequestDTO request) {
         Empresa empresa = empresaRepository.findBySlug(slugEmpresa)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com slug: " + slugEmpresa));
 
-        Assistente assistente = (request.getAssistenteId() != null)
-                ? assistenteRepository.findByIdAndEmpresaId(request.getAssistenteId(), empresa.getId())
-                .orElseGet(() -> buscarAssistentePadrao(empresa.getId()))
-                : buscarAssistentePadrao(empresa.getId());
+        Assistente assistente = assistenteRepository.findBySlugAndEmpresaId(slugAssistente, empresa.getId())
+                .orElseGet(() -> buscarAssistentePadrao(empresa.getId()));
 
         Conversa conversa = obterOuCriarConversa(request, empresa.getId(), assistente.getId(), "WIDGET");
 
@@ -136,9 +142,9 @@ public class ChatService {
             return new ChatResponseDTO(conversa.getId(), respostaHumano, Collections.emptyList(), true, StatusConversa.AGUARDANDO_HUMANO);
         }
 
-        // 3. Busca Vetorial (RAG) com isolamento estrito de tenant
+        // 3. Busca Vetorial (RAG) com isolamento estrito por Empresa e Assistente específico
         List<String> fontes = new ArrayList<>();
-        String contextoRecuperado = buscarContextoRelevante(empresa.getId(), mensagemUsuario, fontes);
+        String contextoRecuperado = buscarContextoRelevante(empresa.getId(), assistente.getId(), mensagemUsuario, fontes);
 
         // 4. Montar o Prompt com Instruções e Contexto
         String promptSistema = montarPromptSistema(empresa, assistente, contextoRecuperado);
@@ -169,22 +175,26 @@ public class ChatService {
         return new ChatResponseDTO(conversa.getId(), respostaIa, fontes, false, conversa.getStatus());
     }
 
-    private String buscarContextoRelevante(UUID empresaId, String pergunta, List<String> fontesColetadas) {
+    private String buscarContextoRelevante(UUID empresaId, UUID assistenteId, String pergunta, List<String> fontesColetadas) {
         try {
-            log.info("Gerando embedding para pergunta e buscando contexto para empresa {}", empresaId);
+            log.info("Gerando embedding para pergunta e buscando contexto para empresa {} e assistente {}", empresaId, assistenteId);
             Response<Embedding> queryEmbedding = embeddingModel.embed(pergunta);
+
+            // Filtro duplo: Garante que a busca respeita a empresa E o bot específico
+            var filtro = MetadataFilterBuilder.metadataKey("empresa_id").isEqualTo(empresaId.toString())
+                    .and(MetadataFilterBuilder.metadataKey("assistente_id").isEqualTo(assistenteId.toString()));
 
             EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                     .queryEmbedding(queryEmbedding.content())
                     .maxResults(4)
                     .minScore(0.55)
-                    .filter(MetadataFilterBuilder.metadataKey("empresa_id").isEqualTo(empresaId.toString()))
+                    .filter(filtro)
                     .build();
 
             EmbeddingSearchResult<TextSegment> resultado = embeddingStore.search(searchRequest);
 
             if (resultado == null || resultado.matches().isEmpty()) {
-                log.info("Nenhum trecho de documento encontrado acima do limiar para a pergunta.");
+                log.info("Nenhum trecho de documento encontrado acima do limiar para este assistente.");
                 return "";
             }
 
@@ -215,18 +225,21 @@ public class ChatService {
                 ? assistente.getPromptSistema()
                 : "Você é um assistente virtual inteligente e atencioso da empresa " + empresa.getNome() + ".");
 
-        sb.append("\n\nTom de voz obrigatório: ").append(assistente.getTomVoz()).append(".");
+        // CORREÇÃO: Força o tom de voz, mas proíbe a IA de repetir a palavra
+        sb.append("\n\nVocê deve adotar um tom de voz ").append(assistente.getTomVoz()).append(" em todas as respostas.");
+        sb.append(" IMPORTANTE: Nunca inicie a frase com a palavra '").append(assistente.getTomVoz()).append("' ou declare o seu tom.");
+
         sb.append("\n\nDiretrizes estritas de atendimento:");
         sb.append("\n1. Se houver trechos de documentos fornecidos abaixo, responda à dúvida baseando-se estritamente neles.");
-        sb.append("\n2. Caso a resposta não esteja nos trechos ou não haja certeza, informe cordialmente que não localizou essa informação e oriente o cliente a solicitar um atendente humano.");
-        sb.append("\n3. Seja claro, conciso e educado. Não invente regras, políticas ou valores que não estejam no contexto.");
+        sb.append("\n2. Caso a resposta não esteja nos trechos ou não haja certeza, informe cordialmente que não localizou essa informação e oriente a falar com um humano.");
+        sb.append("\n3. Seja claro, conciso e aja de forma muito natural. Não use jargões robóticos.");
 
         if (contexto != null && !contexto.trim().isEmpty()) {
             sb.append("\n\n--- DOCUMENTAÇÃO / REGRAS DA EMPRESA ---\n");
             sb.append(contexto);
             sb.append("\n---------------------------------------");
         } else {
-            sb.append("\n\nNenhum documento específico foi encontrado para esta consulta. Responda cordialmente que não encontrou informações específicas nas regras da empresa e ofereça suporte com a equipe humana.");
+            sb.append("\n\nNenhum documento específico foi encontrado para esta consulta. Responda cordialmente que não encontrou informações e ofereça suporte com a equipe humana.");
         }
 
         return sb.toString();

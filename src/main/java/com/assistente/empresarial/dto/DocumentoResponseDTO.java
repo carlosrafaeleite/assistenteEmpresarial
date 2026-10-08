@@ -1,6 +1,6 @@
 package com.assistente.empresarial.dto;
 
-import com.assistente.empresarial.model.StatusDocumento;
+import com.assistente.empresarial.enuns.StatusDocumento;
 import java.time.LocalDateTime;
 import java.util.UUID;
 

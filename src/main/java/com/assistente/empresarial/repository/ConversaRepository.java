@@ -1,7 +1,7 @@
 package com.assistente.empresarial.repository;
 
 import com.assistente.empresarial.model.Conversa;
-import com.assistente.empresarial.model.StatusConversa;
+import com.assistente.empresarial.enuns.StatusConversa;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

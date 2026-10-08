@@ -13,6 +13,7 @@ public class WidgetConfigResponseDTO {
     private String avatarUrl;
     private String mensagemBoasVindas;
     private String tomVoz;
+    private String nomeBot;
 
     public WidgetConfigResponseDTO() {
     }
@@ -87,5 +88,13 @@ public class WidgetConfigResponseDTO {
 
     public void setTomVoz(String tomVoz) {
         this.tomVoz = tomVoz;
+    }
+
+    public String getNomeBot() {
+        return nomeBot;
+    }
+
+    public void setNomeBot(String nomeBot) {
+        this.nomeBot = nomeBot;
     }
 }

@@ -48,8 +48,10 @@ public class SecurityConfig {
                                 "/",
                                 "/index.html",
                                 "/widget.js",
-                                "/favicon.ico"
-                        ).permitAll()
+                                "/favicon.ico",
+                                "/api/chat/widget/**",
+                                "/api/assistentes/**"
+                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class)

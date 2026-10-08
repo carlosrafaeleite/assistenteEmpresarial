@@ -1,5 +1,7 @@
 package com.assistente.empresarial.dto;
 
+import jakarta.persistence.Column;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -11,6 +13,7 @@ public class EmpresaResponseDTO {
 	private String email;
 	private boolean status;
 	private LocalDateTime createdAt;
+	private String nomeBot;
 
 	// Getters e Setters
 	public UUID getId() {
@@ -67,5 +70,13 @@ public class EmpresaResponseDTO {
 
 	public void setCreatedAt(LocalDateTime createdAt) {
 		this.createdAt = createdAt;
+	}
+
+	public String getNomeBot() {
+		return nomeBot;
+	}
+
+	public void setNomeBot(String nomeBot) {
+		this.nomeBot = nomeBot;
 	}
 }

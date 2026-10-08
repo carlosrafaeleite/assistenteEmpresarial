@@ -16,4 +16,11 @@ public interface AssistenteRepository extends JpaRepository<Assistente, UUID> {
     
     // Busca um assistente específico GARANTINDO que ele pertence à empresa logada
     Optional<Assistente> findByIdAndEmpresaId(UUID id, UUID empresaId);
+
+    // conta o numero de asssitentes
+    long countByEmpresaId(UUID empresaId);
+
+    Optional<Assistente> findBySlugAndEmpresaId(String slug, UUID empresaId);
+
+
 }

@@ -48,6 +48,9 @@ public class Assistente {
 	@Column(name = "updated_at")
 	private LocalDateTime updatedAt = LocalDateTime.now();
 
+	@Column(nullable = false, unique = true) // Ou unique por empresa, dependendo da tua regra
+	private String slug;
+
 	public Assistente() {
 	}
 
@@ -153,5 +156,13 @@ public class Assistente {
 
 	public void setUpdatedAt(LocalDateTime updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+
+	public String getSlug() {
+		return slug;
+	}
+
+	public void setSlug(String slug) {
+		this.slug = slug;
 	}
 }

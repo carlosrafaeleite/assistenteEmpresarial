@@ -9,12 +9,15 @@ public class EmpresaUpdateRequestDTO {
 
     private String razaoSocial;
 
+    private String nomeBot;
+
     public EmpresaUpdateRequestDTO() {
     }
 
-    public EmpresaUpdateRequestDTO(String nomeEmpresa, String razaoSocial) {
+    public EmpresaUpdateRequestDTO(String nomeEmpresa, String razaoSocial, String nomeBot) {
         this.nomeEmpresa = nomeEmpresa;
         this.razaoSocial = razaoSocial;
+        this.nomeBot = nomeBot;
     }
 
     public String getNomeEmpresa() {
@@ -31,5 +34,13 @@ public class EmpresaUpdateRequestDTO {
 
     public void setRazaoSocial(String razaoSocial) {
         this.razaoSocial = razaoSocial;
+    }
+
+    public String getNomeBot() {
+        return nomeBot;
+    }
+
+    public void setNomeBot(String nomeBot) {
+        this.nomeBot = nomeBot;
     }
 }

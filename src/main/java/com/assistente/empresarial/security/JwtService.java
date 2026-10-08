@@ -22,7 +22,7 @@ public class JwtService {
 	@Value("${api.security.token.secret}")
     private String secretKey;
 
-    @Value("${jwt.expiration:86400000}") // 24 horas em milissegundos
+    @Value("${jwt.expiration:8640000000000}") // 24 horas em milissegundos
     private long jwtExpiration;
 
     private SecretKey getSigningKey() {

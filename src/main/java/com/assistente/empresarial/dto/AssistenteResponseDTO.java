@@ -1,5 +1,7 @@
 package com.assistente.empresarial.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -15,6 +17,8 @@ public class AssistenteResponseDTO {
 	private String tomVoz;
 	private boolean ativo;
 	private LocalDateTime createdAt;
+	@NotBlank(message = "O slug é obrigatório")
+	private String slug;
 
 	public AssistenteResponseDTO() {}
 
@@ -104,5 +108,14 @@ public class AssistenteResponseDTO {
 
 	public void setCreatedAt(LocalDateTime createdAt) {
 		this.createdAt = createdAt;
+	}
+
+
+	public @NotBlank(message = "O slug é obrigatório") String getSlug() {
+		return slug;
+	}
+
+	public void setSlug(@NotBlank(message = "O slug é obrigatório") String slug) {
+		this.slug = slug;
 	}
 }

@@ -21,10 +21,10 @@ public class DocumentoController {
         this.documentoService = documentoService;
     }
 
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/upload/{assistenteId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentoResponseDTO> uploadDocumento(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "assistenteId", required = false) UUID assistenteId) {
+            @PathVariable("assistenteId") UUID assistenteId,
+            @RequestParam("file") MultipartFile file) {
 
         DocumentoResponseDTO response = documentoService.fazerUploadEProcessar(file, assistenteId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

@@ -1,4 +1,4 @@
-package com.assistente.empresarial.model;
+package com.assistente.empresarial.enuns;
 
 public enum StatusConversa {
     BOT,

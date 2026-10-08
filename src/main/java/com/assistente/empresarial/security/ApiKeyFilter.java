@@ -38,7 +38,10 @@ public class ApiKeyFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
 
-        if (path.startsWith("/api/empresas/registrar") || path.startsWith("/api/auth/")) {
+        if (path.startsWith("/api/empresas/registrar")
+                || path.startsWith("/api/auth/")
+                || path.startsWith("/api/publico/chat/")) {
+
             filterChain.doFilter(request, response);
             return;
         }

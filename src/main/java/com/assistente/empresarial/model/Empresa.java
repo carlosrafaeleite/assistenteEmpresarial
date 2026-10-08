@@ -35,6 +35,12 @@ public class Empresa {
 	@Column(name = "updated_at")
 	private LocalDateTime updatedAt = LocalDateTime.now();
 
+	@Column(name = "limite_assistentes", nullable = false)
+	private int limiteAssistentes = 5; // Padrão do plano inicial
+
+	@Column(name = "nome_bot")
+	private String nomeBot = "Assistente IA";
+
 	// Construtores, Getters e Setters
 	public Empresa() {
 	}
@@ -101,5 +107,21 @@ public class Empresa {
 
 	public void setUpdatedAt(LocalDateTime updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+
+	public int getLimiteAssistentes() {
+		return limiteAssistentes;
+	}
+
+	public void setLimiteAssistentes(int limiteAssistentes) {
+		this.limiteAssistentes = limiteAssistentes;
+	}
+
+	public String getNomeBot() {
+		return nomeBot;
+	}
+
+	public void setNomeBot(String nomeBot) {
+		this.nomeBot = nomeBot;
 	}
 }

@@ -1,5 +1,6 @@
 package com.assistente.empresarial.model;
 
+import com.assistente.empresarial.enuns.StatusDocumento;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;

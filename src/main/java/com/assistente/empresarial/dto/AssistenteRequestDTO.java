@@ -23,6 +23,9 @@ public class AssistenteRequestDTO {
 
 	private boolean ativo = true;
 
+	@NotBlank(message = "O slug é obrigatório")
+	private String slug;
+
 	public AssistenteRequestDTO() {}
 
 	public String getNome() {
@@ -95,5 +98,13 @@ public class AssistenteRequestDTO {
 
 	public void setAtivo(boolean ativo) {
 		this.ativo = ativo;
+	}
+
+	public @NotBlank(message = "O slug é obrigatório") String getSlug() {
+		return slug;
+	}
+
+	public void setSlug(@NotBlank(message = "O slug é obrigatório") String slug) {
+		this.slug = slug;
 	}
 }

@@ -13,6 +13,7 @@ public class EmpresaRegistroRequestDTO {
 
 	private String razaoSocial;
 
+
 	@NotBlank(message = "O slug é obrigatório.")
 	@Pattern(regexp = "^[a-z0-9-]+$", message = "O slug deve conter apenas letras minúsculas, números e hífens.")
 	private String slug;

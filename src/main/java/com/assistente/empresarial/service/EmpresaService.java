@@ -85,7 +85,7 @@ public class EmpresaService {
 
     // Sobrecarga para compatibilidade
     public EmpresaResponseDTO atualizarMeuPerfil(EmpresaRegistroRequestDTO dto) {
-        return atualizarMeuPerfil(new EmpresaUpdateRequestDTO(dto.getNomeEmpresa(), dto.getRazaoSocial()));
+        return atualizarMeuPerfil(new EmpresaUpdateRequestDTO(dto.getNomeEmpresa(), dto.getRazaoSocial(), null));
     }
 
     public EmpresaResponseDTO obterMeuPerfil() {

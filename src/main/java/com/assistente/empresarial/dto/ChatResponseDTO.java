@@ -1,6 +1,6 @@
 package com.assistente.empresarial.dto;
 
-import com.assistente.empresarial.model.StatusConversa;
+import com.assistente.empresarial.enuns.StatusConversa;
 import java.util.List;
 import java.util.UUID;
 
