@@ -54,6 +54,15 @@ public class DocumentoService {
         this.modelMapper = modelMapper;
     }
 
+    public List<DocumentoResponseDTO> listarPorAssistente(UUID assistenteId) {
+        UUID empresaId = obterEmpresaIdContexto();
+        // Filtra estritamente pelos documentos do assistente específico
+        return documentoRepository.findByEmpresaIdAndAssistenteId(empresaId, assistenteId)
+                .stream()
+                .map(doc -> modelMapper.map(doc, DocumentoResponseDTO.class))
+                .collect(Collectors.toList());
+    }
+
     public DocumentoResponseDTO fazerUploadEProcessar(MultipartFile file, UUID assistenteId) {
         UUID empresaId = obterEmpresaIdContexto();
 
@@ -64,55 +73,20 @@ public class DocumentoService {
 
         String extensao = extrairExtensao(originalFilename).toLowerCase();
         if (!isExtensaoPermitida(extensao)) {
-            throw new BusinessException("Tipo de arquivo não suportado. Formato aceito apenas: .pdf");
+            throw new BusinessException("Tipo de arquivo não suportado. Formatos aceitos: .pdf, .docx, .txt, .csv, .md");
         }
 
-        // Limite de 50MB
-        long limiteMaximoBytes = 50L * 1024 * 1024;
-        if (file.getSize() > limiteMaximoBytes) {
-            throw new BusinessException("O ficheiro excede o limite máximo permitido de 50MB.");
-        }
+        // >>> CHAMA AQUI A LIMPEZA ANTES DE CRIAR O NOVO REGISTO <<<
+        limparDocumentos(empresaId, assistenteId);
 
-        // Verificar se já existe um documento associado a este assistente
-        List<Documento> documentosExistentes = documentoRepository.findByEmpresaIdAndAssistenteId(empresaId, assistenteId);
-
-        Documento documento;
-        if (!documentosExistentes.isEmpty()) {
-            // Como a regra é um documento por assistente (ou manter o padrão), pegamos o existente
-            documento = documentosExistentes.get(0);
-
-            // Validação estrita: O nome tem de ser exatamente igual ao anterior
-            if (!documento.getNomeOriginal().equalsIgnoreCase(originalFilename)) {
-                throw new BusinessException(
-                        String.format("Para atualizar este assistente, o ficheiro tem de ter exatamente o nome '%s'.", documento.getNomeOriginal())
-                );
-            }
-
-            // 1. Remover o ficheiro antigo do disco
-            try {
-                fileStorageService.excluir(documento.getCaminhoArquivo());
-            } catch (Exception e) {
-                log.warn("Erro ao excluir ficheiro antigo do disco: {}", e.getMessage());
-            }
-
-            // 2. Remover vetores antigos do embeddingStore (pgvector)
-            try {
-                embeddingStore.removeAll(MetadataFilterBuilder.metadataKey("documento_id").isEqualTo(documento.getId().toString()));
-            } catch (Exception e) {
-                log.warn("Não foi possível excluir vetores antigos no embeddingStore: {}", e.getMessage());
-            }
-
-        } else {
-            // Se não existir, criamos um novo
-            documento = new Documento();
-            documento.setEmpresaId(empresaId);
-            documento.setAssistenteId(assistenteId);
-        }
+        // Criar o novo documento limpo
+        Documento documento = new Documento();
+        documento.setEmpresaId(empresaId);
+        documento.setAssistenteId(assistenteId);
 
         String nomeSalvo = UUID.randomUUID() + "_" + originalFilename;
         String caminhoArquivo = fileStorageService.armazenar(file, empresaId, nomeSalvo);
 
-        // Atualizar metadados do documento (reutilizando o ID se já existir)
         documento.setNomeOriginal(originalFilename);
         documento.setNomeSalvo(nomeSalvo);
         documento.setCaminhoArquivo(caminhoArquivo);
@@ -123,7 +97,7 @@ public class DocumentoService {
 
         Documento docSalvo = documentoRepository.save(documento);
 
-        // 3. Extração, fatiamento e embeddings da nova versão
+        // Extração, fatiamento e embeddings da nova versão
         try {
             processarDocumentoRAG(docSalvo, file.getInputStream());
             docSalvo.setStatus(StatusDocumento.PROCESSADO);
@@ -137,6 +111,26 @@ public class DocumentoService {
 
         Documento docAtualizado = documentoRepository.save(docSalvo);
         return modelMapper.map(docAtualizado, DocumentoResponseDTO.class);
+    }
+
+    private void limparDocumentos(UUID empresaId, UUID assistenteId) {
+        List<Documento> documentosExistentes = documentoRepository.findByEmpresaIdAndAssistenteId(empresaId, assistenteId);
+        if (!documentosExistentes.isEmpty()) {
+            for (Documento docAntigo : documentosExistentes) {
+                try {
+                    fileStorageService.excluir(docAntigo.getCaminhoArquivo());
+                } catch (Exception e) {
+                    log.warn("Erro ao excluir ficheiro antigo do disco: {}", e.getMessage());
+                }
+                try {
+                    embeddingStore.removeAll(MetadataFilterBuilder.metadataKey("documento_id").isEqualTo(docAntigo.getId().toString()));
+                } catch (Exception e) {
+                    log.warn("Erro ao excluir vetores antigos: {}", e.getMessage());
+                }
+            }
+            documentoRepository.deleteAll(documentosExistentes);
+            documentoRepository.flush();
+        }
     }
 
     private void processarDocumentoRAG(Documento documento, InputStream inputStream) {
@@ -218,6 +212,7 @@ public class DocumentoService {
     }
 
     private boolean isExtensaoPermitida(String extensao) {
-        return extensao.equals(".pdf");
+        return extensao.equals(".pdf") || extensao.equals(".docx") || extensao.equals(".doc")
+                || extensao.equals(".txt") || extensao.equals(".csv") || extensao.equals(".md");
     }
 }

@@ -15,7 +15,7 @@ import java.util.UUID;
 public class LocalStorageService {
 
     // Diretório base na máquina/servidor onde os ficheiros serão guardados
-    private final Path raizUploads = Paths.get("upload");
+    private final Path raizUploads = Paths.get("uploads");
 
     public LocalStorageService() {
         try {

@@ -41,4 +41,10 @@ public class DocumentoController {
         documentoService.excluir(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/assistente/{assistenteId}")
+    public ResponseEntity<List<DocumentoResponseDTO>> listarPorAssistente(@PathVariable("assistenteId") UUID assistenteId) {
+        List<DocumentoResponseDTO> documentos = documentoService.listarPorAssistente(assistenteId);
+        return ResponseEntity.ok(documentos);
+    }
 }
