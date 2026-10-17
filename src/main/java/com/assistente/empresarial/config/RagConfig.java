@@ -1,5 +1,7 @@
 package com.assistente.empresarial.config;
 
+import com.assistente.empresarial.service.llm.DynamicChatLanguageModel;
+import com.assistente.empresarial.service.llm.LlmRouterService;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -14,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 import java.time.Duration;
@@ -36,13 +39,9 @@ public class RagConfig {
     private int embeddingDimension;
 
     @Bean
-    public ChatLanguageModel chatLanguageModel() {
-        return OllamaChatModel.builder()
-                .baseUrl(ollamaBaseUrl)
-                .modelName(chatModelName)
-                .temperature(0.3)
-                .timeout(Duration.ofSeconds(120))
-                .build();
+    @Primary
+    public ChatLanguageModel chatLanguageModel(LlmRouterService llmRouterService) {
+        return new DynamicChatLanguageModel(llmRouterService);
     }
 
     @Bean

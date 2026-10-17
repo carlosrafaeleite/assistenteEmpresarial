@@ -14,7 +14,8 @@ import com.assistente.empresarial.security.TenantContext;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
-import jdk.internal.org.jline.utils.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,8 @@ import java.util.stream.Collectors;
 @Service
 public class AssistenteService {
 
+    private static final Logger log = LoggerFactory.getLogger(AssistenteService.class);
+
     private final AssistenteRepository assistenteRepository;
     private final ModelMapper modelMapper;
     private final EmpresaRepository empresaRepository;
@@ -33,7 +36,6 @@ public class AssistenteService {
     private final DocumentoRepository documentoRepository;
     private final FileStorageService fileStorageService;
     private final EmbeddingStore<TextSegment> embeddingStore;
-    private Log log;
 
     public AssistenteService(AssistenteRepository assistenteRepository,
                              EmpresaRepository empresaRepository,

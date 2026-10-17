@@ -149,7 +149,7 @@ public class ChatService {
         // 4. Montar o Prompt com Instruções e Contexto
         String promptSistema = montarPromptSistema(empresa, assistente, contextoRecuperado);
 
-        // 5. Chamar LLM (Ollama)
+        // 5. Chamar LLM (OpenAI, Gemini ou Ollama via ChatLanguageModel)
         String respostaIa;
         try {
             Response<AiMessage> aiResponse = chatLanguageModel.generate(
@@ -158,7 +158,7 @@ public class ChatService {
             );
             respostaIa = aiResponse.content().text();
         } catch (Exception e) {
-            log.error("Erro ao chamar o modelo de chat Ollama: {}", e.getMessage(), e);
+            log.error("Erro ao chamar o modelo de chat LLM: {}", e.getMessage(), e);
             respostaIa = "Desculpe, estou enfrentando uma instabilidade temporária no processamento de respostas. Você gostaria de falar com um atendente humano?";
         }
 

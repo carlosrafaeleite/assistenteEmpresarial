@@ -6,6 +6,8 @@ import com.assistente.empresarial.model.Conversa;
 import com.assistente.empresarial.model.Mensagem;
 import com.assistente.empresarial.repository.EmpresaRepository;
 import com.assistente.empresarial.service.ChatService;
+import com.assistente.empresarial.enuns.LlmProvider;
+import com.assistente.empresarial.service.llm.LlmRouterService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,11 +22,24 @@ import java.util.UUID;
 public class ChatController {
 
     private final ChatService chatService;
-    private final   EmpresaRepository empresaRepository;
+    private final EmpresaRepository empresaRepository;
+    private final LlmRouterService llmRouterService;
 
-    public ChatController(ChatService chatService, EmpresaRepository empresaRepository) {
+    public ChatController(ChatService chatService, EmpresaRepository empresaRepository, LlmRouterService llmRouterService) {
         this.chatService = chatService;
         this.empresaRepository = empresaRepository;
+        this.llmRouterService = llmRouterService;
+    }
+
+    @GetMapping("/llm/status")
+    public ResponseEntity<Map<String, Object>> obterStatusLlm() {
+        return ResponseEntity.ok(llmRouterService.getStatus());
+    }
+
+    @PostMapping("/llm/provedor")
+    public ResponseEntity<Map<String, Object>> alterarProvedorLlm(@RequestParam String provedor) {
+        llmRouterService.setActiveProvider(LlmProvider.fromString(provedor));
+        return ResponseEntity.ok(llmRouterService.getStatus());
     }
 
     @PostMapping("/mensagem")
