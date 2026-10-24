@@ -2,6 +2,7 @@ package com.assistente.empresarial.controller;
 
 import com.assistente.empresarial.dto.AssistenteRequestDTO;
 import com.assistente.empresarial.dto.AssistenteResponseDTO;
+import com.assistente.empresarial.dto.AssistenteSenhaDTO;
 import com.assistente.empresarial.service.AssistenteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,12 @@ public class AssistenteController {
     @PutMapping("/{id}")
     public ResponseEntity<AssistenteResponseDTO> atualizar(@PathVariable UUID id, @Valid @RequestBody AssistenteRequestDTO request) {
         return ResponseEntity.ok(assistenteService.atualizar(id, request));
+    }
+
+    @PatchMapping("/{id}/senha")
+    public ResponseEntity<Void> alterarSenha(@PathVariable UUID id, @RequestBody AssistenteSenhaDTO request) {
+        assistenteService.alterarSenha(id, request != null ? request.getSenha() : null);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

@@ -65,4 +65,14 @@ public class ChatRequestDTO {
     public void setAssistenteId(UUID assistenteId) {
         this.assistenteId = assistenteId;
     }
+
+    private String senhaAcesso;
+
+    public String getSenhaAcesso() {
+        return senhaAcesso;
+    }
+
+    public void setSenhaAcesso(String senhaAcesso) {
+        this.senhaAcesso = senhaAcesso;
+    }
 }

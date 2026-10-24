@@ -13,11 +13,13 @@
                   (scriptSrc ? new URL(scriptSrc).origin : window.location.origin);
 
   let conversaId = sessionStorage.getItem('ai_widget_conversa_' + slug) || null;
+  let senhaAcesso = currentScript.getAttribute('data-senha') || sessionStorage.getItem('ai_widget_senha_' + slug) || null;
   let config = {
     corPrimaria: '#2563EB',
     corSecundaria: '#1E40AF',
     assistenteNome: 'Suporte IA',
-    mensagemBoasVindas: 'Olá! Como posso ajudar você hoje?'
+    mensagemBoasVindas: 'Olá! Como posso ajudar você hoje?',
+    protegidoPorSenha: false
   };
 
   // Carrega configuração pública da empresa/assistente
@@ -211,6 +213,15 @@
       const text = input.value.trim();
       if (!text) return;
 
+      if (config.protegidoPorSenha && !senhaAcesso) {
+        senhaAcesso = window.prompt('Este assistente é confidencial e requer uma senha de acesso:');
+        if (senhaAcesso) {
+          sessionStorage.setItem('ai_widget_senha_' + slug, senhaAcesso);
+        } else {
+          return;
+        }
+      }
+
       input.value = '';
 
       // Adiciona mensagem do usuário
@@ -229,7 +240,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mensagem: text,
-            conversaId: conversaId
+            conversaId: conversaId,
+            senhaAcesso: senhaAcesso
           })
         });
 
@@ -242,6 +254,10 @@
             sessionStorage.setItem('ai_widget_conversa_' + slug, conversaId);
           }
           appendMessage('bot', data.resposta, data.fontes);
+        } else if (response.status === 401) {
+          sessionStorage.removeItem('ai_widget_senha_' + slug);
+          senhaAcesso = null;
+          appendMessage('bot', 'Senha de acesso incorreta para este assistente.');
         } else {
           appendMessage('bot', 'Desculpe, ocorreu um erro ao obter a resposta. Tente novamente mais tarde.');
         }

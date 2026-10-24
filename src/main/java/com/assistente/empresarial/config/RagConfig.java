@@ -62,11 +62,11 @@ public class RagConfig {
                     .table("document_embeddings")
                     .dimension(embeddingDimension)
                     .createTable(true)
-                    .useIndex(true)
+                    .useIndex(false)
                     .metadataStorageConfig(DefaultMetadataStorageConfig.defaultConfig())
                     .build();
         } catch (Exception e) {
-            log.warn("Extensão pgvector não detectada ou erro ao iniciar PgVectorEmbeddingStore: {}. Ativando InMemoryEmbeddingStore como alternativa resiliente.", e.getMessage());
+            log.warn("Extensão pgvector não detectada ou erro ao iniciar PgVectorEmbeddingStore: {}. Ativando InMemoryEmbeddingStore como alternativa resiliente.", e.getMessage(), e);
             return new InMemoryEmbeddingStore<>();
         }
     }

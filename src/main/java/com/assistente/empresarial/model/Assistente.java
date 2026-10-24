@@ -51,6 +51,9 @@ public class Assistente {
 	@Column(nullable = false, unique = true) // Ou unique por empresa, dependendo da tua regra
 	private String slug;
 
+	@Column(name = "senha")
+	private String senha;
+
 	public Assistente() {
 	}
 
@@ -164,5 +167,17 @@ public class Assistente {
 
 	public void setSlug(String slug) {
 		this.slug = slug;
+	}
+
+	public String getSenha() {
+		return senha;
+	}
+
+	public void setSenha(String senha) {
+		this.senha = senha;
+	}
+
+	public boolean temSenha() {
+		return senha != null && !senha.trim().isEmpty();
 	}
 }

@@ -14,6 +14,7 @@ public class WidgetConfigResponseDTO {
     private String mensagemBoasVindas;
     private String tomVoz;
     private String nomeBot;
+    private boolean protegidoPorSenha;
 
     public WidgetConfigResponseDTO() {
     }
@@ -96,5 +97,13 @@ public class WidgetConfigResponseDTO {
 
     public void setNomeBot(String nomeBot) {
         this.nomeBot = nomeBot;
+    }
+
+    public boolean isProtegidoPorSenha() {
+        return protegidoPorSenha;
+    }
+
+    public void setProtegidoPorSenha(boolean protegidoPorSenha) {
+        this.protegidoPorSenha = protegidoPorSenha;
     }
 }

@@ -26,6 +26,8 @@ public class AssistenteRequestDTO {
 	@NotBlank(message = "O slug é obrigatório")
 	private String slug;
 
+	private String senha;
+
 	public AssistenteRequestDTO() {}
 
 	public String getNome() {
@@ -106,5 +108,13 @@ public class AssistenteRequestDTO {
 
 	public void setSlug(@NotBlank(message = "O slug é obrigatório") String slug) {
 		this.slug = slug;
+	}
+
+	public String getSenha() {
+		return senha;
+	}
+
+	public void setSenha(String senha) {
+		this.senha = senha;
 	}
 }

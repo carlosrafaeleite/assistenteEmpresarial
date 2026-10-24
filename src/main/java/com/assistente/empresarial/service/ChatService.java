@@ -27,6 +27,8 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +47,7 @@ public class ChatService {
     private final ChatLanguageModel chatLanguageModel;
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
+    private final PasswordEncoder passwordEncoder;
 
     public ChatService(EmpresaRepository empresaRepository,
                        AssistenteRepository assistenteRepository,
@@ -52,7 +55,8 @@ public class ChatService {
                        MensagemRepository mensagemRepository,
                        ChatLanguageModel chatLanguageModel,
                        EmbeddingModel embeddingModel,
-                       EmbeddingStore<TextSegment> embeddingStore) {
+                       EmbeddingStore<TextSegment> embeddingStore,
+                       PasswordEncoder passwordEncoder) {
         this.empresaRepository = empresaRepository;
         this.assistenteRepository = assistenteRepository;
         this.conversaRepository = conversaRepository;
@@ -60,6 +64,7 @@ public class ChatService {
         this.chatLanguageModel = chatLanguageModel;
         this.embeddingModel = embeddingModel;
         this.embeddingStore = embeddingStore;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public WidgetConfigResponseDTO obterConfiguracaoWidget(String slugEmpresa, String slugAssistente) {
@@ -85,10 +90,28 @@ public class ChatService {
         dto.setAvatarUrl(assistente.getAvatarUrl());
         dto.setMensagemBoasVindas(assistente.getMensagemBoasVindas());
         dto.setTomVoz(assistente.getTomVoz());
+        dto.setProtegidoPorSenha(assistente.temSenha());
 
         return dto;
     }
 
+    public boolean validarSenhaAssistente(String slugEmpresa, String slugAssistente, String senhaDigitada) {
+        Empresa empresa = empresaRepository.findBySlug(slugEmpresa)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com slug: " + slugEmpresa));
+
+        Assistente assistente = assistenteRepository.findBySlugAndEmpresaId(slugAssistente, empresa.getId())
+                .orElseGet(() -> buscarAssistentePadrao(empresa.getId()));
+
+        if (!assistente.temSenha()) {
+            return true;
+        }
+
+        if (senhaDigitada == null || senhaDigitada.trim().isEmpty()) {
+            return false;
+        }
+
+        return passwordEncoder.matches(senhaDigitada.trim(), assistente.getSenha());
+    }
 
     @Transactional
     public ChatResponseDTO responderPublico(String slugEmpresa, String slugAssistente, ChatRequestDTO request) {
@@ -97,6 +120,13 @@ public class ChatService {
 
         Assistente assistente = assistenteRepository.findBySlugAndEmpresaId(slugAssistente, empresa.getId())
                 .orElseGet(() -> buscarAssistentePadrao(empresa.getId()));
+
+        if (assistente.temSenha()) {
+            String senhaAcesso = request.getSenhaAcesso();
+            if (senhaAcesso == null || !passwordEncoder.matches(senhaAcesso.trim(), assistente.getSenha())) {
+                throw new BadCredentialsException("Senha incorreta ou acesso não autorizado para este assistente.");
+            }
+        }
 
         Conversa conversa = obterOuCriarConversa(request, empresa.getId(), assistente.getId(), "WIDGET");
 

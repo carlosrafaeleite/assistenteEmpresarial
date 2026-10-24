@@ -19,6 +19,7 @@ public class AssistenteResponseDTO {
 	private LocalDateTime createdAt;
 	@NotBlank(message = "O slug é obrigatório")
 	private String slug;
+	private boolean protegidoPorSenha;
 
 	public AssistenteResponseDTO() {}
 
@@ -117,5 +118,13 @@ public class AssistenteResponseDTO {
 
 	public void setSlug(@NotBlank(message = "O slug é obrigatório") String slug) {
 		this.slug = slug;
+	}
+
+	public boolean isProtegidoPorSenha() {
+		return protegidoPorSenha;
+	}
+
+	public void setProtegidoPorSenha(boolean protegidoPorSenha) {
+		this.protegidoPorSenha = protegidoPorSenha;
 	}
 }
