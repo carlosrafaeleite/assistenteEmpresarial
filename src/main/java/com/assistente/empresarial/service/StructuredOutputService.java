@@ -1,5 +1,8 @@
-package com.assistente.empresarial.service.structured;
+package com.assistente.empresarial.service;
 
+import com.assistente.empresarial.dto.AnaliseSentimentoDTO;
+import com.assistente.empresarial.dto.LeadQualificadoDTO;
+import com.assistente.empresarial.dto.TicketSuporteDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;

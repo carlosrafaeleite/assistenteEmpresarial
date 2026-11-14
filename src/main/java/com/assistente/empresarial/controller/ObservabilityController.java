@@ -1,8 +1,8 @@
 package com.assistente.empresarial.controller;
 
-import com.assistente.empresarial.service.observability.AiObservabilityService;
-import com.assistente.empresarial.service.observability.ChatTrace;
-import com.assistente.empresarial.service.observability.ObservabilityMetricsDTO;
+import com.assistente.empresarial.dto.ObservabilityMetricsDTO;
+import com.assistente.empresarial.model.ChatTrace;
+import com.assistente.empresarial.service.AiObservabilityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

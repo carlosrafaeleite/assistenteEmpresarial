@@ -1,5 +1,6 @@
-package com.assistente.empresarial.service.streaming;
+package com.assistente.empresarial.service;
 
+import com.assistente.empresarial.dto.StreamChunkDTO;
 import com.assistente.empresarial.enuns.LlmProvider;
 import com.assistente.empresarial.model.Conversa;
 import com.assistente.empresarial.model.Mensagem;
@@ -24,7 +25,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**

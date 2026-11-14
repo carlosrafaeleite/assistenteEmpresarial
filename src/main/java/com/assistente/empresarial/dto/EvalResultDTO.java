@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.eval;
+package com.assistente.empresarial.dto;
 
 public class EvalResultDTO {
 

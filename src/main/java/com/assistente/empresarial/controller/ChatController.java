@@ -1,18 +1,18 @@
 package com.assistente.empresarial.controller;
 
+import com.assistente.empresarial.dto.AnaliseSentimentoDTO;
 import com.assistente.empresarial.dto.ChatRequestDTO;
 import com.assistente.empresarial.dto.ChatResponseDTO;
+import com.assistente.empresarial.dto.LeadQualificadoDTO;
+import com.assistente.empresarial.dto.TicketSuporteDTO;
 import com.assistente.empresarial.enuns.LlmProvider;
 import com.assistente.empresarial.model.Conversa;
 import com.assistente.empresarial.model.Mensagem;
 import com.assistente.empresarial.repository.EmpresaRepository;
+import com.assistente.empresarial.repository.VectorStoreRepository;
 import com.assistente.empresarial.service.ChatService;
+import com.assistente.empresarial.service.StructuredOutputService;
 import com.assistente.empresarial.service.llm.LlmRouterService;
-import com.assistente.empresarial.service.structured.AnaliseSentimentoDTO;
-import com.assistente.empresarial.service.structured.LeadQualificadoDTO;
-import com.assistente.empresarial.service.structured.StructuredOutputService;
-import com.assistente.empresarial.service.structured.TicketSuporteDTO;
-import com.assistente.empresarial.service.vector.VectorStoreManager;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,18 +29,18 @@ public class ChatController {
     private final ChatService chatService;
     private final EmpresaRepository empresaRepository;
     private final LlmRouterService llmRouterService;
-    private final VectorStoreManager vectorStoreManager;
+    private final VectorStoreRepository vectorStoreRepository;
     private final StructuredOutputService structuredOutputService;
 
     public ChatController(ChatService chatService,
                           EmpresaRepository empresaRepository,
                           LlmRouterService llmRouterService,
-                          VectorStoreManager vectorStoreManager,
+                          VectorStoreRepository vectorStoreRepository,
                           StructuredOutputService structuredOutputService) {
         this.chatService = chatService;
         this.empresaRepository = empresaRepository;
         this.llmRouterService = llmRouterService;
-        this.vectorStoreManager = vectorStoreManager;
+        this.vectorStoreRepository = vectorStoreRepository;
         this.structuredOutputService = structuredOutputService;
     }
 
@@ -57,7 +57,7 @@ public class ChatController {
 
     @GetMapping("/vetores/status")
     public ResponseEntity<Map<String, Object>> obterStatusBancoVetorial() {
-        return ResponseEntity.ok(vectorStoreManager.getHealthAndStats());
+        return ResponseEntity.ok(vectorStoreRepository.getHealthAndStats());
     }
 
     @PostMapping("/mensagem")

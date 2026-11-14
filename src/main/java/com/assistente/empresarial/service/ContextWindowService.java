@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.context;
+package com.assistente.empresarial.service;
 
 import com.assistente.empresarial.model.Mensagem;
 import com.assistente.empresarial.repository.MensagemRepository;

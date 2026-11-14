@@ -1,30 +1,23 @@
 package com.assistente.empresarial.service;
 
+import com.assistente.empresarial.dto.AgentExecutionResult;
+import com.assistente.empresarial.dto.BenchmarkReportDTO;
+import com.assistente.empresarial.dto.CachedPromptResponse;
+import com.assistente.empresarial.dto.EvalResultDTO;
+import com.assistente.empresarial.dto.GuardrailResult;
+import com.assistente.empresarial.dto.ObservabilityMetricsDTO;
+import com.assistente.empresarial.dto.RagRetrievalResult;
 import com.assistente.empresarial.enuns.LlmProvider;
+import com.assistente.empresarial.model.ChatTrace;
 import com.assistente.empresarial.model.Mensagem;
 import com.assistente.empresarial.repository.MensagemRepository;
-import com.assistente.empresarial.service.agent.AgentExecutionResult;
-import com.assistente.empresarial.service.agent.ToolAgentService;
-import com.assistente.empresarial.service.cache.CachedPromptResponse;
-import com.assistente.empresarial.service.cache.PromptCacheService;
-import com.assistente.empresarial.service.context.ContextWindowService;
-import com.assistente.empresarial.service.eval.BenchmarkReportDTO;
-import com.assistente.empresarial.service.eval.EvalResultDTO;
-import com.assistente.empresarial.service.eval.LlmEvaluationService;
-import com.assistente.empresarial.service.guardrails.GuardrailResult;
-import com.assistente.empresarial.service.guardrails.GuardrailsService;
-import com.assistente.empresarial.service.observability.AiObservabilityService;
-import com.assistente.empresarial.service.observability.ChatTrace;
-import com.assistente.empresarial.service.observability.ObservabilityMetricsDTO;
-import com.assistente.empresarial.service.rag.AdvancedRagService;
-import com.assistente.empresarial.service.rag.RagRetrievalResult;
+import com.assistente.empresarial.repository.VectorStoreRepository;
 import com.assistente.empresarial.service.tool.EnterpriseToolRegistry;
 import com.assistente.empresarial.service.tool.ToolExecutionEngine;
 import com.assistente.empresarial.service.tool.impl.CalculadoraOrcamentoTool;
 import com.assistente.empresarial.service.tool.impl.HorarioAtendimentoTool;
 import com.assistente.empresarial.service.tool.impl.PoliticaEmpresaTool;
 import com.assistente.empresarial.service.tool.impl.StatusAtendimentoTool;
-import com.assistente.empresarial.service.vector.VectorStoreManager;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
@@ -84,11 +77,11 @@ class RobustArchitectureCriteriaTest {
     void deveRecuperarContextoRag() {
         when(embeddingModel.embed(anyString())).thenReturn(Response.from(Embedding.from(new float[768])));
 
-        VectorStoreManager vectorStoreManager = mock(VectorStoreManager.class);
-        when(vectorStoreManager.search(any(), any(), any(), anyInt(), anyDouble()))
+        VectorStoreRepository vectorStoreRepository = mock(VectorStoreRepository.class);
+        when(vectorStoreRepository.search(any(), any(), any(), anyInt(), anyDouble()))
                 .thenReturn(Collections.emptyList());
 
-        AdvancedRagService ragService = new AdvancedRagService(embeddingModel, vectorStoreManager);
+        AdvancedRagService ragService = new AdvancedRagService(embeddingModel, vectorStoreRepository);
         RagRetrievalResult result = ragService.retrieveRelevantContext(UUID.randomUUID(), UUID.randomUUID(), "Dúvida teste");
 
         assertNotNull(result);

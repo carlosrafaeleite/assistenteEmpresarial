@@ -1,12 +1,14 @@
-package com.assistente.empresarial.service.observability;
+package com.assistente.empresarial.service;
 
-import com.assistente.empresarial.enuns.LlmProvider;
+import com.assistente.empresarial.dto.ObservabilityMetricsDTO;
+import com.assistente.empresarial.model.ChatTrace;
+import com.assistente.empresarial.repository.ChatTraceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -21,17 +23,24 @@ public class AiObservabilityService {
 
     private static final Logger log = LoggerFactory.getLogger(AiObservabilityService.class);
 
-    private static final int MAX_TRACES_HISTORY = 500;
-
     // Custos aproximados por 1 milhão de tokens (ex: OpenAI GPT-4o-mini: $0.15 input / $0.60 output)
     private static final double INPUT_COST_PER_MILLION = 0.15;
     private static final double OUTPUT_COST_PER_MILLION = 0.60;
 
-    private final Deque<ChatTrace> traceBuffer = new ConcurrentLinkedDeque<>();
+    private final ChatTraceRepository chatTraceRepository;
     private final AtomicLong totalRequests = new AtomicLong(0);
     private final AtomicLong totalTokens = new AtomicLong(0);
     private final AtomicLong totalFallbacks = new AtomicLong(0);
     private final AtomicLong totalCacheHits = new AtomicLong(0);
+
+    @Autowired
+    public AiObservabilityService(ChatTraceRepository chatTraceRepository) {
+        this.chatTraceRepository = chatTraceRepository != null ? chatTraceRepository : new ChatTraceRepository();
+    }
+
+    public AiObservabilityService() {
+        this.chatTraceRepository = new ChatTraceRepository();
+    }
 
     public void recordTrace(ChatTrace trace) {
         if (trace == null) return;
@@ -46,10 +55,7 @@ public class AiObservabilityService {
         if (trace.isCacheHit()) totalCacheHits.incrementAndGet();
         if (trace.isFallbackTriggered()) totalFallbacks.incrementAndGet();
 
-        traceBuffer.addFirst(trace);
-        while (traceBuffer.size() > MAX_TRACES_HISTORY) {
-            traceBuffer.pollLast();
-        }
+        chatTraceRepository.save(trace);
 
         log.info("TRACE [{}] Concluído em {}ms | Tokens: {} | Provedor: {} | CacheHit: {} | Fallback: {}",
                 trace.getTraceId().substring(0, 8),
@@ -61,14 +67,7 @@ public class AiObservabilityService {
     }
 
     public List<ChatTrace> getRecentTraces(int limit) {
-        int count = Math.min(limit > 0 ? limit : 50, traceBuffer.size());
-        List<ChatTrace> list = new ArrayList<>(count);
-        int i = 0;
-        for (ChatTrace t : traceBuffer) {
-            if (i++ >= count) break;
-            list.add(t);
-        }
-        return list;
+        return chatTraceRepository.findRecent(limit);
     }
 
     public ObservabilityMetricsDTO getAggregatedMetrics() {
@@ -94,7 +93,7 @@ public class AiObservabilityService {
         double totalCost = 0.0;
         Map<String, Long> providers = new HashMap<>();
 
-        for (ChatTrace t : traceBuffer) {
+        for (ChatTrace t : chatTraceRepository.findAll()) {
             latencies.add(t.getTotalLatencyMs());
             totalCost += t.getEstimatedCostUsd();
 

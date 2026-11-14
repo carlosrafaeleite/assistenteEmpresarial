@@ -1,5 +1,6 @@
-package com.assistente.empresarial.service.agent;
+package com.assistente.empresarial.service;
 
+import com.assistente.empresarial.dto.AgentExecutionResult;
 import com.assistente.empresarial.service.tool.EnterpriseToolRegistry;
 import com.assistente.empresarial.service.tool.ToolExecutionEngine;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;

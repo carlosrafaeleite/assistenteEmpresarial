@@ -1,7 +1,12 @@
 package com.assistente.empresarial.service;
 
+import com.assistente.empresarial.dto.AgentExecutionResult;
+import com.assistente.empresarial.dto.CachedPromptResponse;
 import com.assistente.empresarial.dto.ChatRequestDTO;
 import com.assistente.empresarial.dto.ChatResponseDTO;
+import com.assistente.empresarial.dto.FallbackResult;
+import com.assistente.empresarial.dto.GuardrailResult;
+import com.assistente.empresarial.dto.RagRetrievalResult;
 import com.assistente.empresarial.dto.WidgetConfigResponseDTO;
 import com.assistente.empresarial.enuns.StatusConversa;
 import com.assistente.empresarial.exception.BusinessException;
@@ -11,25 +16,10 @@ import com.assistente.empresarial.repository.AssistenteRepository;
 import com.assistente.empresarial.repository.ConversaRepository;
 import com.assistente.empresarial.repository.EmpresaRepository;
 import com.assistente.empresarial.repository.MensagemRepository;
+import com.assistente.empresarial.repository.VectorStoreRepository;
 import com.assistente.empresarial.security.TenantContext;
-import com.assistente.empresarial.service.agent.AgentExecutionResult;
-import com.assistente.empresarial.service.agent.ToolAgentService;
-import com.assistente.empresarial.service.cache.CachedPromptResponse;
-import com.assistente.empresarial.service.cache.PromptCacheService;
-import com.assistente.empresarial.service.context.ContextWindowService;
-import com.assistente.empresarial.service.fallback.FallbackResult;
-import com.assistente.empresarial.service.fallback.ResilientLlmService;
-import com.assistente.empresarial.service.guardrails.GuardrailResult;
-import com.assistente.empresarial.service.guardrails.GuardrailsService;
-import com.assistente.empresarial.service.observability.AiObservabilityService;
-import com.assistente.empresarial.service.observability.ChatTrace;
-import com.assistente.empresarial.service.rag.AdvancedRagService;
-import com.assistente.empresarial.service.rag.RagRetrievalResult;
-import com.assistente.empresarial.service.streaming.StreamingChatService;
-import com.assistente.empresarial.service.structured.StructuredOutputService;
 import com.assistente.empresarial.service.tool.EnterpriseToolRegistry;
 import com.assistente.empresarial.service.tool.ToolExecutionEngine;
-import com.assistente.empresarial.service.vector.VectorStoreManager;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -66,7 +56,7 @@ public class ChatService {
     private final PromptCacheService promptCacheService;
     private final ContextWindowService contextWindowService;
     private final AdvancedRagService advancedRagService;
-    private final VectorStoreManager vectorStoreManager;
+    private final VectorStoreRepository vectorStoreRepository;
     private final ToolAgentService toolAgentService;
     private final EnterpriseToolRegistry toolRegistry;
     private final ResilientLlmService resilientLlmService;
@@ -90,7 +80,7 @@ public class ChatService {
                        PromptCacheService promptCacheService,
                        ContextWindowService contextWindowService,
                        AdvancedRagService advancedRagService,
-                       VectorStoreManager vectorStoreManager,
+                       VectorStoreRepository vectorStoreRepository,
                        ToolAgentService toolAgentService,
                        EnterpriseToolRegistry toolRegistry,
                        ResilientLlmService resilientLlmService,
@@ -109,7 +99,7 @@ public class ChatService {
         this.promptCacheService = promptCacheService;
         this.contextWindowService = contextWindowService;
         this.advancedRagService = advancedRagService;
-        this.vectorStoreManager = vectorStoreManager;
+        this.vectorStoreRepository = vectorStoreRepository;
         this.toolAgentService = toolAgentService;
         this.toolRegistry = toolRegistry;
         this.resilientLlmService = resilientLlmService;
@@ -142,8 +132,8 @@ public class ChatService {
         this.guardrailsService = new GuardrailsService();
         this.promptCacheService = new PromptCacheService();
         this.contextWindowService = new ContextWindowService(mensagemRepository);
-        this.vectorStoreManager = new VectorStoreManager(embeddingStore, null);
-        this.advancedRagService = new AdvancedRagService(embeddingModel, vectorStoreManager);
+        this.vectorStoreRepository = new VectorStoreRepository(embeddingStore, null);
+        this.advancedRagService = new AdvancedRagService(embeddingModel, vectorStoreRepository);
         this.toolRegistry = new EnterpriseToolRegistry(Collections.emptyList());
         ToolExecutionEngine toolEngine = new ToolExecutionEngine(toolRegistry);
         this.toolAgentService = new ToolAgentService(chatLanguageModel, toolRegistry, toolEngine);

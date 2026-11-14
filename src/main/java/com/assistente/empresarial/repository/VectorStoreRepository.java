@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.vector;
+package com.assistente.empresarial.repository;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -10,7 +10,7 @@ import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -19,20 +19,20 @@ import java.sql.Statement;
 import java.util.*;
 
 /**
- * Gerenciador Avançado de Banco Vetorial (PgVector & In-Memory).
+ * Repositório de Banco Vetorial (PgVector & In-Memory).
  * - Execução de buscas vetoriais com filtros de isolamento multitenant estrito.
  * - Health Check e diagnóstico de conectividade do banco vetorial.
  * - Métricas de vetores armazenados por empresa e assistente.
  */
-@Service
-public class VectorStoreManager {
+@Repository
+public class VectorStoreRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(VectorStoreManager.class);
+    private static final Logger log = LoggerFactory.getLogger(VectorStoreRepository.class);
 
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final DataSource dataSource;
 
-    public VectorStoreManager(EmbeddingStore<TextSegment> embeddingStore, DataSource dataSource) {
+    public VectorStoreRepository(EmbeddingStore<TextSegment> embeddingStore, DataSource dataSource) {
         this.embeddingStore = embeddingStore;
         this.dataSource = dataSource;
     }

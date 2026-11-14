@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.fallback;
+package com.assistente.empresarial.dto;
 
 import com.assistente.empresarial.enuns.LlmProvider;
 import dev.langchain4j.data.message.AiMessage;

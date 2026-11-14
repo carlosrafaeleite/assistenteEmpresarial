@@ -1,5 +1,6 @@
-package com.assistente.empresarial.service.fallback;
+package com.assistente.empresarial.service;
 
+import com.assistente.empresarial.dto.FallbackResult;
 import com.assistente.empresarial.enuns.LlmProvider;
 import com.assistente.empresarial.service.llm.GeminiChatService;
 import com.assistente.empresarial.service.llm.LlmChatService;

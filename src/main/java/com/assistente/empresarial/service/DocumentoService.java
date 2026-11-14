@@ -41,14 +41,14 @@ public class DocumentoService {
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final ModelMapper modelMapper;
-    private final com.assistente.empresarial.service.cache.PromptCacheService promptCacheService;
+    private final PromptCacheService promptCacheService;
 
     public DocumentoService(DocumentoRepository documentoRepository,
                             FileStorageService fileStorageService,
                             EmbeddingModel embeddingModel,
                             EmbeddingStore<TextSegment> embeddingStore,
                             ModelMapper modelMapper,
-                            com.assistente.empresarial.service.cache.PromptCacheService promptCacheService) {
+                            PromptCacheService promptCacheService) {
         this.documentoRepository = documentoRepository;
         this.fileStorageService = fileStorageService;
         this.embeddingModel = embeddingModel;

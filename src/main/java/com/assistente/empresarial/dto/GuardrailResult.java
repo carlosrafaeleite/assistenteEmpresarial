@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.guardrails;
+package com.assistente.empresarial.dto;
 
 import java.util.ArrayList;
 import java.util.List;

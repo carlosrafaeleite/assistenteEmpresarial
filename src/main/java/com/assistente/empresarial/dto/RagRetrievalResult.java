@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.rag;
+package com.assistente.empresarial.dto;
 
 import java.util.ArrayList;
 import java.util.List;

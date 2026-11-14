@@ -1,8 +1,8 @@
 package com.assistente.empresarial.controller;
 
-import com.assistente.empresarial.service.eval.BenchmarkReportDTO;
-import com.assistente.empresarial.service.eval.EvalResultDTO;
-import com.assistente.empresarial.service.eval.LlmEvaluationService;
+import com.assistente.empresarial.dto.BenchmarkReportDTO;
+import com.assistente.empresarial.dto.EvalResultDTO;
+import com.assistente.empresarial.service.LlmEvaluationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

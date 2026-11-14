@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.observability;
+package com.assistente.empresarial.dto;
 
 import java.util.Map;
 

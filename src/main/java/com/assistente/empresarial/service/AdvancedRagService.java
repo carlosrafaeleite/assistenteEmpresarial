@@ -1,6 +1,7 @@
-package com.assistente.empresarial.service.rag;
+package com.assistente.empresarial.service;
 
-import com.assistente.empresarial.service.vector.VectorStoreManager;
+import com.assistente.empresarial.dto.RagRetrievalResult;
+import com.assistente.empresarial.repository.VectorStoreRepository;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -29,11 +30,11 @@ public class AdvancedRagService {
     private static final int DEFAULT_TOP_K = 5;
 
     private final EmbeddingModel embeddingModel;
-    private final VectorStoreManager vectorStoreManager;
+    private final VectorStoreRepository vectorStoreRepository;
 
-    public AdvancedRagService(EmbeddingModel embeddingModel, VectorStoreManager vectorStoreManager) {
+    public AdvancedRagService(EmbeddingModel embeddingModel, VectorStoreRepository vectorStoreRepository) {
         this.embeddingModel = embeddingModel;
-        this.vectorStoreManager = vectorStoreManager;
+        this.vectorStoreRepository = vectorStoreRepository;
     }
 
     /**
@@ -52,14 +53,14 @@ public class AdvancedRagService {
             Embedding queryVector = embeddingResponse.content();
 
             // 1. Busca estrita com score primário
-            List<EmbeddingMatch<TextSegment>> matches = vectorStoreManager.search(
+            List<EmbeddingMatch<TextSegment>> matches = vectorStoreRepository.search(
                     queryVector, empresaId, assistenteId, DEFAULT_TOP_K, PRIMARY_MIN_SCORE
             );
 
             // 2. Se nenhum resultado satisfatório for encontrado, tenta com limiar mais flexível
             if (matches.isEmpty()) {
                 log.debug("Nenhum match com score >= {}. Tentando limiar adaptativo >= {}", PRIMARY_MIN_SCORE, RELAXED_MIN_SCORE);
-                matches = vectorStoreManager.search(
+                matches = vectorStoreRepository.search(
                         queryVector, empresaId, assistenteId, DEFAULT_TOP_K, RELAXED_MIN_SCORE
                 );
             }

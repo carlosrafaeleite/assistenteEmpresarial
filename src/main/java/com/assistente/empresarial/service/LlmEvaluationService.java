@@ -1,5 +1,7 @@
-package com.assistente.empresarial.service.eval;
+package com.assistente.empresarial.service;
 
+import com.assistente.empresarial.dto.BenchmarkReportDTO;
+import com.assistente.empresarial.dto.EvalResultDTO;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

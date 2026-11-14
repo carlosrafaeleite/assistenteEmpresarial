@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.eval;
+package com.assistente.empresarial.dto;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

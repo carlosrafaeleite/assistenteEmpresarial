@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.observability;
+package com.assistente.empresarial.model;
 
 import com.assistente.empresarial.enuns.LlmProvider;
 

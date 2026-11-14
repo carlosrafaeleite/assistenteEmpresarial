@@ -1,5 +1,6 @@
-package com.assistente.empresarial.service.cache;
+package com.assistente.empresarial.service;
 
+import com.assistente.empresarial.dto.CachedPromptResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

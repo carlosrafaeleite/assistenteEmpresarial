@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.structured;
+package com.assistente.empresarial.dto;
 
 public class AnaliseSentimentoDTO {
 

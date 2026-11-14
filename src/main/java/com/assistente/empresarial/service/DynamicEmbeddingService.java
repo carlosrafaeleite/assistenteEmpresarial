@@ -1,4 +1,4 @@
-package com.assistente.empresarial.service.embedding;
+package com.assistente.empresarial.service;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
