@@ -50,7 +50,9 @@ public class SecurityConfig {
                                 "/widget.js",
                                 "/favicon.ico",
                                 "/api/chat/widget/**",
-                                "/api/assistentes/**"
+                                "/api/assistentes/**",
+                                "/api/observability/**",
+                                "/api/evals/**"
                          ).permitAll()
                         .anyRequest().authenticated()
                 )

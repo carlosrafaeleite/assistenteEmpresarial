@@ -2,12 +2,17 @@ package com.assistente.empresarial.controller;
 
 import com.assistente.empresarial.dto.ChatRequestDTO;
 import com.assistente.empresarial.dto.ChatResponseDTO;
+import com.assistente.empresarial.enuns.LlmProvider;
 import com.assistente.empresarial.model.Conversa;
 import com.assistente.empresarial.model.Mensagem;
 import com.assistente.empresarial.repository.EmpresaRepository;
 import com.assistente.empresarial.service.ChatService;
-import com.assistente.empresarial.enuns.LlmProvider;
 import com.assistente.empresarial.service.llm.LlmRouterService;
+import com.assistente.empresarial.service.structured.AnaliseSentimentoDTO;
+import com.assistente.empresarial.service.structured.LeadQualificadoDTO;
+import com.assistente.empresarial.service.structured.StructuredOutputService;
+import com.assistente.empresarial.service.structured.TicketSuporteDTO;
+import com.assistente.empresarial.service.vector.VectorStoreManager;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +29,19 @@ public class ChatController {
     private final ChatService chatService;
     private final EmpresaRepository empresaRepository;
     private final LlmRouterService llmRouterService;
+    private final VectorStoreManager vectorStoreManager;
+    private final StructuredOutputService structuredOutputService;
 
-    public ChatController(ChatService chatService, EmpresaRepository empresaRepository, LlmRouterService llmRouterService) {
+    public ChatController(ChatService chatService,
+                          EmpresaRepository empresaRepository,
+                          LlmRouterService llmRouterService,
+                          VectorStoreManager vectorStoreManager,
+                          StructuredOutputService structuredOutputService) {
         this.chatService = chatService;
         this.empresaRepository = empresaRepository;
         this.llmRouterService = llmRouterService;
+        this.vectorStoreManager = vectorStoreManager;
+        this.structuredOutputService = structuredOutputService;
     }
 
     @GetMapping("/llm/status")
@@ -42,10 +55,33 @@ public class ChatController {
         return ResponseEntity.ok(llmRouterService.getStatus());
     }
 
+    @GetMapping("/vetores/status")
+    public ResponseEntity<Map<String, Object>> obterStatusBancoVetorial() {
+        return ResponseEntity.ok(vectorStoreManager.getHealthAndStats());
+    }
+
     @PostMapping("/mensagem")
     public ResponseEntity<ChatResponseDTO> enviarMensagemInterna(@Valid @RequestBody ChatRequestDTO request) {
         ChatResponseDTO response = chatService.responderInterno(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/structured/lead")
+    public ResponseEntity<LeadQualificadoDTO> extrairLead(@RequestBody Map<String, String> payload) {
+        String texto = payload.getOrDefault("texto", "");
+        return ResponseEntity.ok(structuredOutputService.qualificarLead(texto));
+    }
+
+    @PostMapping("/structured/sentimento")
+    public ResponseEntity<AnaliseSentimentoDTO> analisarSentimento(@RequestBody Map<String, String> payload) {
+        String texto = payload.getOrDefault("texto", "");
+        return ResponseEntity.ok(structuredOutputService.analisarSentimento(texto));
+    }
+
+    @PostMapping("/structured/ticket")
+    public ResponseEntity<TicketSuporteDTO> classificarTicket(@RequestBody Map<String, String> payload) {
+        String texto = payload.getOrDefault("texto", "");
+        return ResponseEntity.ok(structuredOutputService.classificarTicket(texto));
     }
 
     @GetMapping("/conversas")
@@ -63,10 +99,10 @@ public class ChatController {
         return empresaRepository.findBySlug(empresaSlug)
                 .map(empresa -> {
                     Map<String, Object> widgetData = new HashMap<>();
-                    widgetData.put("empresaNome", empresa.getNome()); // <--- Aqui está o nome correto da empresa!
+                    widgetData.put("empresaNome", empresa.getNome());
                     widgetData.put("razaoSocial", empresa.getRazaoSocial());
                     widgetData.put("corPrimaria", "#0d9488");
-                    widgetData.put("nomeBot", empresa.getNomeBot()); // <--- O nome do bot (ex: "Terezinha")
+                    widgetData.put("nomeBot", empresa.getNomeBot());
                     return ResponseEntity.ok(widgetData);
                 })
                 .orElse(ResponseEntity.notFound().build());

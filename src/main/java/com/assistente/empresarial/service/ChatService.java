@@ -12,25 +12,37 @@ import com.assistente.empresarial.repository.ConversaRepository;
 import com.assistente.empresarial.repository.EmpresaRepository;
 import com.assistente.empresarial.repository.MensagemRepository;
 import com.assistente.empresarial.security.TenantContext;
-import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
+import com.assistente.empresarial.service.agent.AgentExecutionResult;
+import com.assistente.empresarial.service.agent.ToolAgentService;
+import com.assistente.empresarial.service.cache.CachedPromptResponse;
+import com.assistente.empresarial.service.cache.PromptCacheService;
+import com.assistente.empresarial.service.context.ContextWindowService;
+import com.assistente.empresarial.service.fallback.FallbackResult;
+import com.assistente.empresarial.service.fallback.ResilientLlmService;
+import com.assistente.empresarial.service.guardrails.GuardrailResult;
+import com.assistente.empresarial.service.guardrails.GuardrailsService;
+import com.assistente.empresarial.service.observability.AiObservabilityService;
+import com.assistente.empresarial.service.observability.ChatTrace;
+import com.assistente.empresarial.service.rag.AdvancedRagService;
+import com.assistente.empresarial.service.rag.RagRetrievalResult;
+import com.assistente.empresarial.service.streaming.StreamingChatService;
+import com.assistente.empresarial.service.structured.StructuredOutputService;
+import com.assistente.empresarial.service.tool.EnterpriseToolRegistry;
+import com.assistente.empresarial.service.tool.ToolExecutionEngine;
+import com.assistente.empresarial.service.vector.VectorStoreManager;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.output.Response;
-import dev.langchain4j.store.embedding.EmbeddingMatch;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -49,6 +61,66 @@ public class ChatService {
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final PasswordEncoder passwordEncoder;
 
+    // Componentes de Arquitetura Robusta de IA
+    private final GuardrailsService guardrailsService;
+    private final PromptCacheService promptCacheService;
+    private final ContextWindowService contextWindowService;
+    private final AdvancedRagService advancedRagService;
+    private final VectorStoreManager vectorStoreManager;
+    private final ToolAgentService toolAgentService;
+    private final EnterpriseToolRegistry toolRegistry;
+    private final ResilientLlmService resilientLlmService;
+    private final AiObservabilityService observabilityService;
+    private final StreamingChatService streamingChatService;
+    private final StructuredOutputService structuredOutputService;
+
+    /**
+     * Construtor principal gerenciado pelo Spring com injeção de todos os pilares da arquitetura.
+     */
+    @Autowired
+    public ChatService(EmpresaRepository empresaRepository,
+                       AssistenteRepository assistenteRepository,
+                       ConversaRepository conversaRepository,
+                       MensagemRepository mensagemRepository,
+                       ChatLanguageModel chatLanguageModel,
+                       EmbeddingModel embeddingModel,
+                       EmbeddingStore<TextSegment> embeddingStore,
+                       PasswordEncoder passwordEncoder,
+                       GuardrailsService guardrailsService,
+                       PromptCacheService promptCacheService,
+                       ContextWindowService contextWindowService,
+                       AdvancedRagService advancedRagService,
+                       VectorStoreManager vectorStoreManager,
+                       ToolAgentService toolAgentService,
+                       EnterpriseToolRegistry toolRegistry,
+                       ResilientLlmService resilientLlmService,
+                       AiObservabilityService observabilityService,
+                       StreamingChatService streamingChatService,
+                       StructuredOutputService structuredOutputService) {
+        this.empresaRepository = empresaRepository;
+        this.assistenteRepository = assistenteRepository;
+        this.conversaRepository = conversaRepository;
+        this.mensagemRepository = mensagemRepository;
+        this.chatLanguageModel = chatLanguageModel;
+        this.embeddingModel = embeddingModel;
+        this.embeddingStore = embeddingStore;
+        this.passwordEncoder = passwordEncoder;
+        this.guardrailsService = guardrailsService;
+        this.promptCacheService = promptCacheService;
+        this.contextWindowService = contextWindowService;
+        this.advancedRagService = advancedRagService;
+        this.vectorStoreManager = vectorStoreManager;
+        this.toolAgentService = toolAgentService;
+        this.toolRegistry = toolRegistry;
+        this.resilientLlmService = resilientLlmService;
+        this.observabilityService = observabilityService;
+        this.streamingChatService = streamingChatService;
+        this.structuredOutputService = structuredOutputService;
+    }
+
+    /**
+     * Construtor de compatibilidade para testes unitários legados.
+     */
     public ChatService(EmpresaRepository empresaRepository,
                        AssistenteRepository assistenteRepository,
                        ConversaRepository conversaRepository,
@@ -65,6 +137,20 @@ public class ChatService {
         this.embeddingModel = embeddingModel;
         this.embeddingStore = embeddingStore;
         this.passwordEncoder = passwordEncoder;
+
+        // Inicializa instâncias auxiliares para execução resiliente fora do container Spring
+        this.guardrailsService = new GuardrailsService();
+        this.promptCacheService = new PromptCacheService();
+        this.contextWindowService = new ContextWindowService(mensagemRepository);
+        this.vectorStoreManager = new VectorStoreManager(embeddingStore, null);
+        this.advancedRagService = new AdvancedRagService(embeddingModel, vectorStoreManager);
+        this.toolRegistry = new EnterpriseToolRegistry(Collections.emptyList());
+        ToolExecutionEngine toolEngine = new ToolExecutionEngine(toolRegistry);
+        this.toolAgentService = new ToolAgentService(chatLanguageModel, toolRegistry, toolEngine);
+        this.resilientLlmService = null;
+        this.observabilityService = new AiObservabilityService();
+        this.streamingChatService = null;
+        this.structuredOutputService = null;
     }
 
     public WidgetConfigResponseDTO obterConfiguracaoWidget(String slugEmpresa, String slugAssistente) {
@@ -79,7 +165,6 @@ public class ChatService {
         dto.setEmpresaSlug(empresa.getSlug());
         dto.setAssistenteId(assistente.getId());
 
-        // CORREÇÃO: Pega diretamente o nome_bot da tabela Empresa se ele existir, senão usa o do assistente
         String nomeBotReal = (empresa.getNomeBot() != null && !empresa.getNomeBot().trim().isEmpty())
                 ? empresa.getNomeBot()
                 : assistente.getNome();
@@ -129,7 +214,6 @@ public class ChatService {
         }
 
         Conversa conversa = obterOuCriarConversa(request, empresa.getId(), assistente.getId(), "WIDGET");
-
         return executarProcessamentoChat(empresa, assistente, conversa, request.getMensagem());
     }
 
@@ -149,18 +233,47 @@ public class ChatService {
                 : buscarAssistentePadrao(empresa.getId());
 
         Conversa conversa = obterOuCriarConversa(request, empresa.getId(), assistente.getId(), "INTERNO");
-
         return executarProcessamentoChat(empresa, assistente, conversa, request.getMensagem());
     }
 
+    /**
+     * Pipeline Unificado de Execução de Chat contendo os 13 pilares de robustez.
+     */
     private ChatResponseDTO executarProcessamentoChat(Empresa empresa, Assistente assistente, Conversa conversa, String mensagemUsuario) {
-        // 1. Salvar mensagem do usuário
-        Mensagem msgUser = new Mensagem(conversa.getId(), "USUARIO", mensagemUsuario);
+        long startTime = System.currentTimeMillis();
+        ChatTrace trace = new ChatTrace();
+        trace.setEmpresaId(empresa.getId());
+        trace.setAssistenteId(assistente.getId());
+        trace.setCanal(conversa.getCanal());
+
+        // 1. Guardrails de Entrada: Detecção de Prompt Injection e Ofuscação de PII
+        long tGuardrail = System.currentTimeMillis();
+        GuardrailResult guardrailResult = guardrailsService.validateInput(mensagemUsuario);
+        trace.setGuardrailTimeMs(System.currentTimeMillis() - tGuardrail);
+
+        if (!guardrailResult.isAllowed()) {
+            trace.setGuardrailViolations(guardrailResult.getViolations());
+            trace.setTotalLatencyMs(System.currentTimeMillis() - startTime);
+            observabilityService.recordTrace(trace);
+
+            Mensagem msgUser = new Mensagem(conversa.getId(), "USUARIO", mensagemUsuario);
+            mensagemRepository.save(msgUser);
+
+            String respostaBloqueio = guardrailResult.getSanitizedText();
+            Mensagem msgBot = new Mensagem(conversa.getId(), "ASSISTENTE", respostaBloqueio);
+            mensagemRepository.save(msgBot);
+
+            return new ChatResponseDTO(conversa.getId(), respostaBloqueio, Collections.emptyList(), false, conversa.getStatus());
+        }
+
+        String mensagemSanitizada = guardrailResult.getSanitizedText();
+
+        // Salvar mensagem sanitizada do usuário
+        Mensagem msgUser = new Mensagem(conversa.getId(), "USUARIO", mensagemSanitizada);
         mensagemRepository.save(msgUser);
 
-        // 2. Verificar se o usuário solicitou atendimento humano
-        boolean solicitouHumano = checarSolicitacaoHumano(mensagemUsuario);
-        if (solicitouHumano) {
+        // 2. Verificação de transbordo para Atendimento Humano
+        if (checarSolicitacaoHumano(mensagemSanitizada)) {
             conversa.setStatus(StatusConversa.AGUARDANDO_HUMANO);
             conversa.setUpdatedAt(LocalDateTime.now());
             conversaRepository.save(conversa);
@@ -169,31 +282,77 @@ public class ChatService {
             Mensagem msgBot = new Mensagem(conversa.getId(), "ASSISTENTE", respostaHumano);
             mensagemRepository.save(msgBot);
 
+            trace.setTotalLatencyMs(System.currentTimeMillis() - startTime);
+            observabilityService.recordTrace(trace);
+
             return new ChatResponseDTO(conversa.getId(), respostaHumano, Collections.emptyList(), true, StatusConversa.AGUARDANDO_HUMANO);
         }
 
-        // 3. Busca Vetorial (RAG) com isolamento estrito por Empresa e Assistente específico
-        List<String> fontes = new ArrayList<>();
-        String contextoRecuperado = buscarContextoRelevante(empresa.getId(), assistente.getId(), mensagemUsuario, fontes);
+        // 3. Prompt Caching: Consulta em memória (<1ms) antes de acionar RAG ou LLM
+        long tCache = System.currentTimeMillis();
+        CachedPromptResponse cached = promptCacheService.get(empresa.getId(), assistente.getId(), assistente.getPromptSistema(), mensagemSanitizada);
+        trace.setCacheCheckTimeMs(System.currentTimeMillis() - tCache);
 
-        // 4. Montar o Prompt com Instruções e Contexto
-        String promptSistema = montarPromptSistema(empresa, assistente, contextoRecuperado);
+        if (cached != null) {
+            trace.setCacheHit(true);
+            trace.setTotalLatencyMs(System.currentTimeMillis() - startTime);
+            observabilityService.recordTrace(trace);
 
-        // 5. Chamar LLM (OpenAI, Gemini ou Ollama via ChatLanguageModel)
-        String respostaIa;
-        try {
-            Response<AiMessage> aiResponse = chatLanguageModel.generate(
-                    SystemMessage.from(promptSistema),
-                    UserMessage.from(mensagemUsuario)
-            );
-            respostaIa = aiResponse.content().text();
-        } catch (Exception e) {
-            log.error("Erro ao chamar o modelo de chat LLM: {}", e.getMessage(), e);
-            respostaIa = "Desculpe, estou enfrentando uma instabilidade temporária no processamento de respostas. Você gostaria de falar com um atendente humano?";
+            Mensagem msgAssistente = new Mensagem(conversa.getId(), "ASSISTENTE", cached.getResposta());
+            if (!cached.getFontes().isEmpty()) {
+                msgAssistente.setFontes(String.join(", ", cached.getFontes()));
+            }
+            mensagemRepository.save(msgAssistente);
+
+            return new ChatResponseDTO(conversa.getId(), cached.getResposta(), cached.getFontes(), false, conversa.getStatus());
         }
 
-        // 6. Salvar resposta da IA
-        Mensagem msgAssistente = new Mensagem(conversa.getId(), "ASSISTENTE", respostaIa);
+        // 4. RAG Avançado: Recuperação com limiar adaptativo, desduplicação e rastreamento de fontes
+        long tRag = System.currentTimeMillis();
+        RagRetrievalResult ragResult = advancedRagService.retrieveRelevantContext(empresa.getId(), assistente.getId(), mensagemSanitizada);
+        trace.setRagRetrievalTimeMs(System.currentTimeMillis() - tRag);
+
+        String contextoRecuperado = ragResult.getContextText();
+        List<String> fontes = ragResult.getSources();
+
+        // 5. Janela de Contexto: Montagem de instruções de sistema e poda deslizante por orçamento de tokens
+        String promptSistema = montarPromptSistema(empresa, assistente, contextoRecuperado);
+        List<ChatMessage> windowedMessages = contextWindowService.buildWindowedMessages(conversa.getId(), promptSistema, mensagemSanitizada);
+
+        int inputEstimatedTokens = contextWindowService.estimateTokens(promptSistema) + contextWindowService.estimateTokens(mensagemSanitizada);
+        trace.setInputTokens(inputEstimatedTokens);
+
+        // 6. Agente de Ferramentas & Fallback de Resiliência
+        long tLlm = System.currentTimeMillis();
+        String respostaBruta;
+        try {
+            // Executa com Agente de Ferramentas (ReAct loop com catálogo corporativo)
+            AgentExecutionResult agentResult = toolAgentService.runAgentLoop(windowedMessages);
+            respostaBruta = agentResult.getFinalResponse();
+            trace.setToolsUsed(agentResult.getExecutedTools());
+        } catch (Exception e) {
+            log.warn("Exceção no Agente de Ferramentas: {}. Acionando Fallback de Resiliência Multi-Provedor...", e.getMessage());
+            if (resilientLlmService != null) {
+                FallbackResult fallbackResult = resilientLlmService.generateWithFallback(windowedMessages);
+                respostaBruta = fallbackResult.getResponse().content().text();
+                trace.setFallbackTriggered(fallbackResult.isFallbackTriggered());
+                trace.setProviderUsed(fallbackResult.getProviderUsed());
+            } else {
+                respostaBruta = "Desculpe, estamos enfrentando uma instabilidade temporária no processamento de respostas. Você gostaria de falar com um atendente humano?";
+            }
+        }
+        trace.setLlmInferenceTimeMs(System.currentTimeMillis() - tLlm);
+
+        // 7. Guardrails de Saída: Sanitização contra vazamento de prompt de sistema ou segredos
+        String respostaFinal = guardrailsService.validateAndSanitizeOutput(respostaBruta, promptSistema);
+        trace.setOutputTokens(contextWindowService.estimateTokens(respostaFinal));
+        trace.setTotalTokens(trace.getInputTokens() + trace.getOutputTokens());
+
+        // 8. Gravação no Prompt Cache para acelerar consultas futuras idênticas
+        promptCacheService.put(empresa.getId(), assistente.getId(), assistente.getPromptSistema(), mensagemSanitizada, respostaFinal, fontes);
+
+        // 9. Persistência da resposta do assistente
+        Mensagem msgAssistente = new Mensagem(conversa.getId(), "ASSISTENTE", respostaFinal);
         if (!fontes.isEmpty()) {
             msgAssistente.setFontes(String.join(", ", fontes));
         }
@@ -202,75 +361,71 @@ public class ChatService {
         conversa.setUpdatedAt(LocalDateTime.now());
         conversaRepository.save(conversa);
 
-        return new ChatResponseDTO(conversa.getId(), respostaIa, fontes, false, conversa.getStatus());
+        // 10. Observabilidade: Registro do trace da requisição
+        trace.setTotalLatencyMs(System.currentTimeMillis() - startTime);
+        observabilityService.recordTrace(trace);
+
+        return new ChatResponseDTO(conversa.getId(), respostaFinal, fontes, false, conversa.getStatus());
     }
 
-    private String buscarContextoRelevante(UUID empresaId, UUID assistenteId, String pergunta, List<String> fontesColetadas) {
-        try {
-            log.info("Gerando embedding para pergunta e buscando contexto para empresa {} e assistente {}", empresaId, assistenteId);
-            Response<Embedding> queryEmbedding = embeddingModel.embed(pergunta);
+    /**
+     * Endpoint de Streaming em tempo real (Server-Sent Events) para widgets e aplicações conectadas.
+     */
+    public SseEmitter iniciarStreamingPublico(String slugEmpresa, String slugAssistente, ChatRequestDTO request) {
+        Empresa empresa = empresaRepository.findBySlug(slugEmpresa)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com slug: " + slugEmpresa));
 
-            // Filtro duplo: Garante que a busca respeita a empresa E o bot específico
-            var filtro = MetadataFilterBuilder.metadataKey("empresa_id").isEqualTo(empresaId.toString())
-                    .and(MetadataFilterBuilder.metadataKey("assistente_id").isEqualTo(assistenteId.toString()));
+        Assistente assistente = assistenteRepository.findBySlugAndEmpresaId(slugAssistente, empresa.getId())
+                .orElseGet(() -> buscarAssistentePadrao(empresa.getId()));
 
-            EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
-                    .queryEmbedding(queryEmbedding.content())
-                    .maxResults(4)
-                    .minScore(0.55)
-                    .filter(filtro)
-                    .build();
-
-            EmbeddingSearchResult<TextSegment> resultado = embeddingStore.search(searchRequest);
-
-            if (resultado == null || resultado.matches().isEmpty()) {
-                log.info("Nenhum trecho de documento encontrado acima do limiar para este assistente.");
-                return "";
+        if (assistente.temSenha()) {
+            String senhaAcesso = request.getSenhaAcesso();
+            if (senhaAcesso == null || !passwordEncoder.matches(senhaAcesso.trim(), assistente.getSenha())) {
+                throw new BadCredentialsException("Senha incorreta ou acesso não autorizado.");
             }
-
-            StringBuilder sb = new StringBuilder();
-            Set<String> fontesUnicas = new LinkedHashSet<>();
-
-            for (EmbeddingMatch<TextSegment> match : resultado.matches()) {
-                TextSegment segment = match.embedded();
-                sb.append("- ").append(segment.text().trim()).append("\n\n");
-
-                String nomeArquivo = segment.metadata().getString("nome_arquivo");
-                if (nomeArquivo != null && !nomeArquivo.trim().isEmpty()) {
-                    fontesUnicas.add(nomeArquivo);
-                }
-            }
-
-            fontesColetadas.addAll(fontesUnicas);
-            return sb.toString().trim();
-        } catch (Exception e) {
-            log.warn("Falha na busca vetorial no embeddingStore: {}", e.getMessage());
-            return "";
         }
+
+        Conversa conversa = obterOuCriarConversa(request, empresa.getId(), assistente.getId(), "WIDGET_STREAM");
+
+        // Guardrails de Entrada
+        GuardrailResult guardrailResult = guardrailsService.validateInput(request.getMensagem());
+        String msgSanitizada = guardrailResult.getSanitizedText();
+
+        Mensagem msgUser = new Mensagem(conversa.getId(), "USUARIO", msgSanitizada);
+        mensagemRepository.save(msgUser);
+
+        // RAG Avançado
+        RagRetrievalResult ragResult = advancedRagService.retrieveRelevantContext(empresa.getId(), assistente.getId(), msgSanitizada);
+        String promptSistema = montarPromptSistema(empresa, assistente, ragResult.getContextText());
+        List<ChatMessage> messages = contextWindowService.buildWindowedMessages(conversa.getId(), promptSistema, msgSanitizada);
+
+        SseEmitter emitter = new SseEmitter(180_000L); // 3 minutos de timeout
+        if (streamingChatService != null) {
+            streamingChatService.streamResponse(messages, conversa, ragResult.getSources(), emitter);
+        }
+        return emitter;
     }
 
     private String montarPromptSistema(Empresa empresa, Assistente assistente, String contexto) {
         StringBuilder sb = new StringBuilder();
         sb.append(assistente.getPromptSistema() != null && !assistente.getPromptSistema().trim().isEmpty()
                 ? assistente.getPromptSistema()
-                : "Você é um assistente virtual inteligente e atencioso da empresa " + empresa.getNome() + ".");
+                : "Você é um assistente virtual corporativo inteligente da empresa " + empresa.getNome() + ".");
 
-        // CORREÇÃO: Força o tom de voz, mas proíbe a IA de repetir a palavra
         sb.append("\n\nVocê deve adotar um tom de voz ").append(assistente.getTomVoz()).append(" em todas as respostas.");
-        sb.append(" IMPORTANTE: Nunca inicie a frase com a palavra '").append(assistente.getTomVoz()).append("' ou declare o seu tom.");
+        sb.append(" IMPORTANTE: Nunca inicie a frase declarando o seu tom ou repetindo '").append(assistente.getTomVoz()).append("'.");
 
-        sb.append("\n\nDiretrizes estritas de atendimento:");
-        sb.append("\n1. Se houver trechos de documentos fornecidos abaixo, responda à dúvida baseando-se estritamente neles.");
-        sb.append("\n2. Caso a resposta não esteja nos trechos ou não haja certeza, informe cordialmente que não localizou essa informação e oriente a falar com um humano.");
-        sb.append("\n3. Seja claro, conciso e aja de forma muito natural. Não use jargões robóticos.");
-        sb.append("\n4. É **estritamente proibido** inventar, deduzir, supor ou trazer conhecimentos externos. Se um plano, número ou dado não estiver explicitamente escrito nos documentos, diga apenas que não encontrou essa informação.");
+        sb.append("\n\nDiretrizes de Atendimento e Segurança:");
+        sb.append("\n1. Baseie-se estritamente na documentação fornecida abaixo. Se não souber ou a informação não estiver expressa, informe cordialmente e ofereça atendimento humano.");
+        sb.append("\n2. Não invente ou presuma regras, planos ou valores inexistentes.");
+        sb.append("\n3. Sempre que pertinente, você pode utilizar as ferramentas corporativas integradas (ex: cálculo de orçamentos, status de chamados, horário de atendimento).");
 
         if (contexto != null && !contexto.trim().isEmpty()) {
             sb.append("\n\n--- DOCUMENTAÇÃO / REGRAS DA EMPRESA ---\n");
             sb.append(contexto);
             sb.append("\n---------------------------------------");
         } else {
-            sb.append("\n\nNenhum documento específico foi encontrado para esta consulta. Responda cordialmente que não encontrou informações e ofereça suporte com a equipe humana.");
+            sb.append("\n\nNenhum documento específico foi encontrado para esta consulta. Responda cordialmente orientando o cliente ou oferecendo suporte humano.");
         }
 
         return sb.toString();
@@ -302,7 +457,6 @@ public class ChatService {
             return assistentes.get(0);
         }
 
-        // Criar assistente padrão se a empresa ainda não cadastrou nenhum
         Assistente padrao = new Assistente();
         padrao.setEmpresaId(empresaId);
         padrao.setNome("Assistente Virtual");
@@ -344,5 +498,9 @@ public class ChatService {
                 || msgLower.contains("falar com uma pessoa")
                 || msgLower.contains("chamar atendente")
                 || msgLower.contains("humano");
+    }
+
+    public StructuredOutputService getStructuredOutputService() {
+        return structuredOutputService;
     }
 }

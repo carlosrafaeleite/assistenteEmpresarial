@@ -44,14 +44,6 @@ public class RagConfig {
         return new DynamicChatLanguageModel(llmRouterService);
     }
 
-    @Bean
-    public EmbeddingModel embeddingModel() {
-        return OllamaEmbeddingModel.builder()
-                .baseUrl(ollamaBaseUrl)
-                .modelName(embeddingModelName)
-                .timeout(Duration.ofSeconds(60))
-                .build();
-    }
 
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore(DataSource dataSource) {

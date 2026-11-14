@@ -41,17 +41,20 @@ public class DocumentoService {
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final ModelMapper modelMapper;
+    private final com.assistente.empresarial.service.cache.PromptCacheService promptCacheService;
 
     public DocumentoService(DocumentoRepository documentoRepository,
                             FileStorageService fileStorageService,
                             EmbeddingModel embeddingModel,
                             EmbeddingStore<TextSegment> embeddingStore,
-                            ModelMapper modelMapper) {
+                            ModelMapper modelMapper,
+                            com.assistente.empresarial.service.cache.PromptCacheService promptCacheService) {
         this.documentoRepository = documentoRepository;
         this.fileStorageService = fileStorageService;
         this.embeddingModel = embeddingModel;
         this.embeddingStore = embeddingStore;
         this.modelMapper = modelMapper;
+        this.promptCacheService = promptCacheService;
     }
 
     public List<DocumentoResponseDTO> listarPorAssistente(UUID assistenteId) {
@@ -110,6 +113,9 @@ public class DocumentoService {
         }
 
         Documento docAtualizado = documentoRepository.save(docSalvo);
+        if (promptCacheService != null) {
+            promptCacheService.invalidate(empresaId, assistenteId);
+        }
         return modelMapper.map(docAtualizado, DocumentoResponseDTO.class);
     }
 
@@ -196,6 +202,9 @@ public class DocumentoService {
         }
 
         documentoRepository.delete(documento);
+        if (promptCacheService != null) {
+            promptCacheService.invalidate(empresaId, documento.getAssistenteId());
+        }
     }
 
     private UUID obterEmpresaIdContexto() {

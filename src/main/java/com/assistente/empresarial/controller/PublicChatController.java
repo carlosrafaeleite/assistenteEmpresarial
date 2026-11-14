@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class PublicChatController {
         this.chatService = chatService;
     }
 
-    // Rota com empresaSlug e assistenteSlug
+    // Rotas com empresaSlug e assistenteSlug
     @GetMapping("/{empresaSlug}/{assistenteSlug}/config")
     public ResponseEntity<WidgetConfigResponseDTO> obterConfiguracaoWidget(
             @PathVariable String empresaSlug,
@@ -56,5 +57,42 @@ public class PublicChatController {
 
         ChatResponseDTO response = chatService.responderPublico(empresaSlug, assistenteSlug, request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/{empresaSlug}/{assistenteSlug}/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamMensagem(
+            @PathVariable String empresaSlug,
+            @PathVariable String assistenteSlug,
+            @Valid @RequestBody ChatRequestDTO request) {
+
+        return chatService.iniciarStreamingPublico(empresaSlug, assistenteSlug, request);
+    }
+
+    // Sobrecargas de conveniência para quando apenas empresaSlug é fornecido (assistente padrão)
+    @GetMapping("/{empresaSlug}/config")
+    public ResponseEntity<WidgetConfigResponseDTO> obterConfiguracaoWidgetPadrao(
+            @PathVariable String empresaSlug) {
+        return obterConfiguracaoWidget(empresaSlug, "padrao");
+    }
+
+    @PostMapping("/{empresaSlug}/validar-senha")
+    public ResponseEntity<Map<String, Object>> validarSenhaPadrao(
+            @PathVariable String empresaSlug,
+            @RequestBody ValidarSenhaDTO request) {
+        return validarSenha(empresaSlug, "padrao", request);
+    }
+
+    @PostMapping("/{empresaSlug}/mensagem")
+    public ResponseEntity<ChatResponseDTO> enviarMensagemPadrao(
+            @PathVariable String empresaSlug,
+            @Valid @RequestBody ChatRequestDTO request) {
+        return enviarMensagem(empresaSlug, "padrao", request);
+    }
+
+    @PostMapping(value = "/{empresaSlug}/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamMensagemPadrao(
+            @PathVariable String empresaSlug,
+            @Valid @RequestBody ChatRequestDTO request) {
+        return streamMensagem(empresaSlug, "padrao", request);
     }
 }
