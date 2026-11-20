@@ -3,7 +3,9 @@ package com.assistente.empresarial.service;
 import com.assistente.empresarial.dto.UsuarioResponseDTO;
 import com.assistente.empresarial.model.Usuario;
 import com.assistente.empresarial.repository.UsuarioRepository;
+import com.assistente.empresarial.security.SaasOwnerAuthorizationService;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,11 +18,21 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
+    private final SaasOwnerAuthorizationService saasOwnerAuthorizationService;
 
-    public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, ModelMapper modelMapper) {
+    @Autowired
+    public AuthService(UsuarioRepository usuarioRepository,
+                       PasswordEncoder passwordEncoder,
+                       ModelMapper modelMapper,
+                       @Autowired(required = false) SaasOwnerAuthorizationService saasOwnerAuthorizationService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
+        this.saasOwnerAuthorizationService = saasOwnerAuthorizationService;
+    }
+
+    public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, ModelMapper modelMapper) {
+        this(usuarioRepository, passwordEncoder, modelMapper, null);
     }
 
     // Retorna a entidade Usuario para que o Controller possa extrair o ID da empresa e gerar o token
@@ -39,6 +51,9 @@ public class AuthService {
 
     // Isola a responsabilidade do ModelMapper
     public UsuarioResponseDTO converterParaDTO(Usuario usuario) {
-        return modelMapper.map(usuario, UsuarioResponseDTO.class);
+        UsuarioResponseDTO dto = modelMapper.map(usuario, UsuarioResponseDTO.class);
+        boolean isOwner = saasOwnerAuthorizationService != null && saasOwnerAuthorizationService.isSaasOwner(usuario);
+        dto.setSaasOwner(isOwner);
+        return dto;
     }
 }

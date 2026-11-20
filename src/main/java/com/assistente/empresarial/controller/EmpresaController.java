@@ -47,8 +47,17 @@ public class EmpresaController {
     }
 
     @PostMapping("/me/creditos")
-    public ResponseEntity<EmpresaResponseDTO> adicionarCreditos(@RequestBody Map<String, Long> body) {
-        long tokens = body != null && body.get("tokens") != null ? body.get("tokens") : 0L;
+    public ResponseEntity<EmpresaResponseDTO> adicionarCreditos(
+            @RequestParam(value = "quantidade", required = false) Long quantidade,
+            @RequestBody(required = false) Map<String, Long> body) {
+        long tokens = 0L;
+        if (quantidade != null) {
+            tokens = quantidade;
+        } else if (body != null && body.get("tokens") != null) {
+            tokens = body.get("tokens");
+        } else if (body != null && body.get("quantidade") != null) {
+            tokens = body.get("quantidade");
+        }
         return ResponseEntity.ok(empresaService.recarregarCreditos(tokens));
     }
 

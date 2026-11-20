@@ -1,5 +1,6 @@
 package com.assistente.empresarial.dto;
 
+import com.assistente.empresarial.enuns.ModoIdentificacaoChat;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class AssistenteResponseDTO {
 	@NotBlank(message = "O slug é obrigatório")
 	private String slug;
 	private boolean protegidoPorSenha;
+	private ModoIdentificacaoChat modoIdentificacao;
 
 	public AssistenteResponseDTO() {}
 
@@ -126,5 +128,13 @@ public class AssistenteResponseDTO {
 
 	public void setProtegidoPorSenha(boolean protegidoPorSenha) {
 		this.protegidoPorSenha = protegidoPorSenha;
+	}
+
+	public ModoIdentificacaoChat getModoIdentificacao() {
+		return modoIdentificacao;
+	}
+
+	public void setModoIdentificacao(ModoIdentificacaoChat modoIdentificacao) {
+		this.modoIdentificacao = modoIdentificacao;
 	}
 }

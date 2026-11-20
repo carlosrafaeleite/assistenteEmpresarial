@@ -4,16 +4,22 @@ import com.assistente.empresarial.dto.EmpresaRegistroRequestDTO;
 import com.assistente.empresarial.dto.EmpresaResponseDTO;
 import com.assistente.empresarial.dto.EmpresaUpdateRequestDTO;
 import com.assistente.empresarial.enuns.PlanoEmpresa;
+import com.assistente.empresarial.enuns.TipoTransacaoCredito;
 import com.assistente.empresarial.exception.BusinessException;
 import com.assistente.empresarial.exception.ConflictException;
 import com.assistente.empresarial.exception.ResourceNotFoundException;
+import com.assistente.empresarial.model.CreditoTransacao;
 import com.assistente.empresarial.model.Empresa;
 import com.assistente.empresarial.model.Usuario;
+import com.assistente.empresarial.repository.CreditoTransacaoRepository;
 import com.assistente.empresarial.repository.EmpresaRepository;
 import com.assistente.empresarial.repository.UsuarioRepository;
+import com.assistente.empresarial.security.SaasOwnerAuthorizationService;
 import com.assistente.empresarial.security.TenantContext;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,26 +36,44 @@ public class EmpresaService {
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
     private final SlackWebhookService slackWebhookService;
+    private final SaasOwnerAuthorizationService saasOwnerAuthorizationService;
+    private final CreditoTransacaoRepository creditoTransacaoRepository;
 
     @Autowired
     public EmpresaService(EmpresaRepository empresaRepository, UsuarioRepository usuarioRepository,
                           PasswordEncoder passwordEncoder, ModelMapper modelMapper,
-                          @Autowired(required = false) SlackWebhookService slackWebhookService) {
+                          @Autowired(required = false) SlackWebhookService slackWebhookService,
+                          @Autowired(required = false) SaasOwnerAuthorizationService saasOwnerAuthorizationService,
+                          @Autowired(required = false) CreditoTransacaoRepository creditoTransacaoRepository) {
         this.empresaRepository = empresaRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
         this.slackWebhookService = slackWebhookService != null ? slackWebhookService : new SlackWebhookService();
+        this.saasOwnerAuthorizationService = saasOwnerAuthorizationService;
+        this.creditoTransacaoRepository = creditoTransacaoRepository;
+    }
+
+    public EmpresaService(EmpresaRepository empresaRepository, UsuarioRepository usuarioRepository,
+                          PasswordEncoder passwordEncoder, ModelMapper modelMapper,
+                          SlackWebhookService slackWebhookService) {
+        this(empresaRepository, usuarioRepository, passwordEncoder, modelMapper, slackWebhookService, null, null);
     }
 
     public EmpresaService(EmpresaRepository empresaRepository, UsuarioRepository usuarioRepository,
                           PasswordEncoder passwordEncoder, ModelMapper modelMapper) {
-        this(empresaRepository, usuarioRepository, passwordEncoder, modelMapper, new SlackWebhookService());
+        this(empresaRepository, usuarioRepository, passwordEncoder, modelMapper, new SlackWebhookService(), null, null);
     }
 
     @Transactional
     public EmpresaResponseDTO registarNovaEmpresa(EmpresaRegistroRequestDTO dto) {
-        if (usuarioRepository.findByEmail(dto.getEmailAdmin()).isPresent()) {
+        String emailAdmin = dto.getEmailAdmin() != null ? dto.getEmailAdmin().trim() : null;
+        if (emailAdmin == null || emailAdmin.isEmpty()) {
+            throw new BusinessException("O e-mail do administrador é obrigatório.");
+        }
+        if (usuarioRepository.findByEmailIgnoreCase(emailAdmin).isPresent()
+                || usuarioRepository.findByEmail(emailAdmin).isPresent()
+                || empresaRepository.findByEmail(emailAdmin).isPresent()) {
             throw new ConflictException("E-mail do administrador já registado na plataforma.");
         }
         if (empresaRepository.findBySlug(dto.getSlug()).isPresent()) {
@@ -58,7 +82,9 @@ public class EmpresaService {
 
         Empresa empresa = modelMapper.map(dto, Empresa.class);
         empresa.setNome(dto.getNomeEmpresa());
-        empresa.setEmail(dto.getEmailAdmin());
+        empresa.setRazaoSocial(dto.getRazaoSocial());
+        empresa.setSlug(dto.getSlug());
+        empresa.setEmail(emailAdmin);
         empresa.setStatus(true);
         empresa.setPlano(PlanoEmpresa.SIMPLES);
         empresa.setCreditosTokens(PlanoEmpresa.SIMPLES.getCreditosIniciais());
@@ -66,14 +92,25 @@ public class EmpresaService {
 
         Empresa empresaGuardada = empresaRepository.save(empresa);
 
-        Usuario admin = modelMapper.map(dto, Usuario.class);
+        Usuario admin = new Usuario();
         admin.setEmpresaId(empresaGuardada.getId());
         admin.setNome(dto.getNomeAdmin());
+        admin.setEmail(emailAdmin);
         admin.setSenha(passwordEncoder.encode(dto.getSenhaAdmin()));
         admin.setPerfil("ADMIN");
         admin.setStatus(true);
 
         usuarioRepository.save(admin);
+
+        registrarTransacaoCredito(
+                empresaGuardada,
+                TipoTransacaoCredito.FRANQUIA_INICIAL,
+                empresaGuardada.getCreditosTokens(),
+                0L,
+                empresaGuardada.getCreditosTokens(),
+                "Franquia inicial do plano " + empresaGuardada.getPlano().name(),
+                emailAdmin
+        );
 
         return toResponseDTO(empresaGuardada);
     }
@@ -125,12 +162,25 @@ public class EmpresaService {
         UUID empresaId = obterEmpresaIdContexto();
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada."));
+        long saldoAnterior = empresa.getCreditosTokens();
         empresa.setPlano(novoPlano);
         if (novoPlano == PlanoEmpresa.EMPRESARIAL && empresa.getCreditosTokens() < PlanoEmpresa.EMPRESARIAL.getCreditosIniciais()) {
             empresa.setCreditosTokens(PlanoEmpresa.EMPRESARIAL.getCreditosIniciais());
         }
         empresa.setUpdatedAt(LocalDateTime.now());
-        return toResponseDTO(empresaRepository.save(empresa));
+        Empresa salva = empresaRepository.save(empresa);
+        if (salva.getCreditosTokens() > saldoAnterior) {
+            registrarTransacaoCredito(
+                    salva,
+                    TipoTransacaoCredito.PLANO_UPGRADE,
+                    salva.getCreditosTokens() - saldoAnterior,
+                    saldoAnterior,
+                    salva.getCreditosTokens(),
+                    "Ajuste de franquia por upgrade para o plano " + novoPlano.name(),
+                    obterEmailUsuarioAtual(salva.getEmail())
+            );
+        }
+        return toResponseDTO(salva);
     }
 
     @Transactional
@@ -141,9 +191,20 @@ public class EmpresaService {
         UUID empresaId = obterEmpresaIdContexto();
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada."));
-        empresa.setCreditosTokens(empresa.getCreditosTokens() + tokensAdicionais);
+        long saldoAnterior = empresa.getCreditosTokens();
+        empresa.setCreditosTokens(saldoAnterior + tokensAdicionais);
         empresa.setUpdatedAt(LocalDateTime.now());
-        return toResponseDTO(empresaRepository.save(empresa));
+        Empresa salva = empresaRepository.save(empresa);
+        registrarTransacaoCredito(
+                salva,
+                TipoTransacaoCredito.RECARGA_CLIENTE,
+                tokensAdicionais,
+                saldoAnterior,
+                salva.getCreditosTokens(),
+                "Recarga de créditos realizada no painel da empresa",
+                obterEmailUsuarioAtual(salva.getEmail())
+        );
+        return toResponseDTO(salva);
     }
 
     @Transactional
@@ -175,7 +236,37 @@ public class EmpresaService {
         dto.setMaxArquivos(empresa.getMaxArquivosPermitidos());
         dto.setLimiteArmazenamentoBytes(empresa.getLimiteArmazenamentoBytes());
         dto.setSlackWebhookUrl(empresa.getSlackWebhookUrl());
+        boolean isOwner = saasOwnerAuthorizationService != null
+                && saasOwnerAuthorizationService.isCurrentUserSaasOwner();
+        dto.setSaasOwner(isOwner);
         return dto;
+    }
+
+    private void registrarTransacaoCredito(Empresa empresa, TipoTransacaoCredito tipo, long delta,
+                                           long saldoAnterior, long saldoPosterior, String motivo, String emailAutor) {
+        if (creditoTransacaoRepository == null || empresa.getId() == null) {
+            return;
+        }
+        CreditoTransacao transacao = new CreditoTransacao(
+                empresa.getId(),
+                empresa.getNome() != null ? empresa.getNome() : "Empresa",
+                tipo,
+                delta,
+                saldoAnterior,
+                saldoPosterior,
+                motivo,
+                emailAutor != null ? emailAutor : "sistema"
+        );
+        creditoTransacaoRepository.save(transacao);
+    }
+
+    private String obterEmailUsuarioAtual(String fallback) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && auth.getName() != null
+                && !"anonymousUser".equalsIgnoreCase(auth.getName())) {
+            return auth.getName();
+        }
+        return fallback != null ? fallback : "sistema";
     }
 
     private UUID obterEmpresaIdContexto() {

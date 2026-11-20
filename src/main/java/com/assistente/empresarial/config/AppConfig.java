@@ -25,6 +25,7 @@ public class AppConfig {
                 stmt.executeUpdate("UPDATE empresa SET plano = 'SIMPLES' WHERE plano IS NULL");
                 stmt.executeUpdate("UPDATE empresa SET creditos_tokens = 100000 WHERE creditos_tokens IS NULL");
                 stmt.executeUpdate("UPDATE empresa SET tokens_consumidos = 0 WHERE tokens_consumidos IS NULL");
+                stmt.executeUpdate("UPDATE assistente SET modo_identificacao = 'NOME_CONTATO_OPCIONAL' WHERE modo_identificacao IS NULL");
                 stmt.execute("ALTER TABLE IF EXISTS conversas DROP CONSTRAINT IF EXISTS conversas_status_check");
             } catch (Exception ignored) {
                 // Ignora caso seja banco em memória de teste ou tabela ainda vazia

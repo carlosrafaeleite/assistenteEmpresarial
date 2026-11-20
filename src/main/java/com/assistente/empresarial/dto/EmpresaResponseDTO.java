@@ -20,6 +20,7 @@ public class EmpresaResponseDTO {
 	private int maxArquivos;
 	private long limiteArmazenamentoBytes;
 	private String slackWebhookUrl;
+	private boolean saasOwner;
 
 	public UUID getId() {
 		return id;
@@ -131,5 +132,13 @@ public class EmpresaResponseDTO {
 
 	public void setSlackWebhookUrl(String slackWebhookUrl) {
 		this.slackWebhookUrl = slackWebhookUrl;
+	}
+
+	public boolean isSaasOwner() {
+		return saasOwner;
+	}
+
+	public void setSaasOwner(boolean saasOwner) {
+		this.saasOwner = saasOwner;
 	}
 }

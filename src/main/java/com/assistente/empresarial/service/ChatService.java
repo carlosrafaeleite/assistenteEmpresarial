@@ -178,6 +178,7 @@ public class ChatService {
         dto.setMensagemBoasVindas(assistente.getMensagemBoasVindas());
         dto.setTomVoz(assistente.getTomVoz());
         dto.setProtegidoPorSenha(assistente.temSenha());
+        dto.setModoIdentificacao(assistente.getModoIdentificacao());
 
         return dto;
     }
@@ -511,13 +512,26 @@ public class ChatService {
             throw new BusinessException("Os créditos de tokens da empresa estão esgotados.");
         }
 
+        long streamStart = System.currentTimeMillis();
         RagRetrievalResult ragResult = advancedRagService.retrieveRelevantContext(empresa.getId(), assistente.getId(), msgSanitizada);
+        long ragElapsed = System.currentTimeMillis() - streamStart;
         String promptSistema = montarPromptSistema(empresa, assistente, ragResult.getContextText());
         List<ChatMessage> messages = contextWindowService.buildWindowedMessages(conversa.getId(), promptSistema, msgSanitizada);
 
-        int estimatedTokens = contextWindowService.estimateTokens(promptSistema) + contextWindowService.estimateTokens(msgSanitizada);
-        empresa.debitarTokensChat(Math.max(1, estimatedTokens));
+        int estimatedTokens = Math.max(1, contextWindowService.estimateTokens(promptSistema) + contextWindowService.estimateTokens(msgSanitizada));
+        empresa.debitarTokensChat(estimatedTokens);
         empresaRepository.save(empresa);
+
+        ChatTrace streamTrace = new ChatTrace();
+        streamTrace.setEmpresaId(empresa.getId());
+        streamTrace.setAssistenteId(assistente.getId());
+        streamTrace.setCanal("WIDGET_STREAM");
+        streamTrace.setRagRetrievalTimeMs(ragElapsed);
+        streamTrace.setTotalLatencyMs(ragElapsed);
+        streamTrace.setInputTokens(estimatedTokens);
+        streamTrace.setOutputTokens(0);
+        streamTrace.setTotalTokens(estimatedTokens);
+        observabilityService.recordTrace(streamTrace);
 
         if (streamingChatService != null) {
             streamingChatService.streamResponse(messages, conversa, ragResult.getSources(), emitter);
@@ -664,19 +678,42 @@ public class ChatService {
     }
 
     private Conversa obterOuCriarConversa(ChatRequestDTO request, UUID empresaId, UUID assistenteId, String canal) {
+        String nomeLimpo = (request.getClienteNome() != null && !request.getClienteNome().trim().isEmpty())
+                ? request.getClienteNome().trim()
+                : null;
+        String emailLimpo = (request.getClienteEmail() != null && !request.getClienteEmail().trim().isEmpty())
+                ? request.getClienteEmail().trim()
+                : null;
+
         if (request.getConversaId() != null) {
             Optional<Conversa> conversaOpt = conversaRepository.findByIdAndEmpresaId(request.getConversaId(), empresaId);
             if (conversaOpt.isPresent()) {
-                return conversaOpt.get();
+                Conversa existente = conversaOpt.get();
+                boolean alterado = false;
+                if (nomeLimpo != null && (existente.getClienteNome() == null
+                        || existente.getClienteNome().isBlank()
+                        || "Visitante".equalsIgnoreCase(existente.getClienteNome().trim()))) {
+                    existente.setClienteNome(nomeLimpo);
+                    alterado = true;
+                }
+                if (emailLimpo != null && (existente.getClienteEmail() == null || existente.getClienteEmail().isBlank())) {
+                    existente.setClienteEmail(emailLimpo);
+                    alterado = true;
+                }
+                return alterado ? conversaRepository.save(existente) : existente;
             }
         }
 
         Conversa nova = new Conversa();
         nova.setEmpresaId(empresaId);
         nova.setAssistenteId(assistenteId);
-        nova.setClienteIdentificador(request.getClienteIdentificador() != null ? request.getClienteIdentificador() : UUID.randomUUID().toString());
-        nova.setClienteNome(request.getClienteNome());
-        nova.setClienteEmail(request.getClienteEmail());
+        nova.setClienteIdentificador(
+                request.getClienteIdentificador() != null && !request.getClienteIdentificador().trim().isEmpty()
+                        ? request.getClienteIdentificador().trim()
+                        : (emailLimpo != null ? emailLimpo : (nomeLimpo != null ? nomeLimpo : UUID.randomUUID().toString()))
+        );
+        nova.setClienteNome(nomeLimpo != null ? nomeLimpo : "Visitante");
+        nova.setClienteEmail(emailLimpo);
         nova.setCanal(canal);
         nova.setStatus(StatusConversa.BOT);
 

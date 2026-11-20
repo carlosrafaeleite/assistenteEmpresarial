@@ -11,6 +11,7 @@ public class UsuarioResponseDTO {
 	private String perfil;
 	private boolean status;
 	private LocalDateTime createdAt;
+	private boolean saasOwner;
 
 	// Getters e Setters necessários para o ModelMapper
 	public UUID getId() {
@@ -67,5 +68,13 @@ public class UsuarioResponseDTO {
 
 	public void setCreatedAt(LocalDateTime createdAt) {
 		this.createdAt = createdAt;
+	}
+
+	public boolean isSaasOwner() {
+		return saasOwner;
+	}
+
+	public void setSaasOwner(boolean saasOwner) {
+		this.saasOwner = saasOwner;
 	}
 }

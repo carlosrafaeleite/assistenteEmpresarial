@@ -2,6 +2,7 @@ package com.assistente.empresarial.service;
 
 import com.assistente.empresarial.dto.AssistenteRequestDTO;
 import com.assistente.empresarial.dto.AssistenteResponseDTO;
+import com.assistente.empresarial.enuns.ModoIdentificacaoChat;
 import com.assistente.empresarial.model.Assistente;
 import com.assistente.empresarial.model.Empresa;
 import com.assistente.empresarial.repository.AssistenteRepository;
@@ -163,5 +164,29 @@ class AssistenteServiceTest {
         assertNull(existente.getSenha());
         assertFalse(existente.temSenha());
         verify(assistenteRepository).save(existente);
+    }
+
+    @Test
+    @DisplayName("Deve configurar e alterar o modo de identificação do visitante no assistente")
+    void deveConfigurarEAlterarModoIdentificacao() {
+        UUID assistenteId = UUID.randomUUID();
+        Assistente existente = new Assistente();
+        existente.setId(assistenteId);
+        existente.setEmpresaId(empresaId);
+        existente.setNome("Canal RH");
+        existente.setSlug("rh");
+
+        assertEquals(ModoIdentificacaoChat.NOME_CONTATO_OPCIONAL, existente.getModoIdentificacao());
+
+        when(assistenteRepository.findByIdAndEmpresaId(assistenteId, empresaId)).thenReturn(Optional.of(existente));
+        when(assistenteRepository.save(any(Assistente.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AssistenteResponseDTO resp = assistenteService.alterarModoIdentificacao(
+                assistenteId,
+                ModoIdentificacaoChat.NOME_EMAIL_OBRIGATORIO
+        );
+
+        assertEquals(ModoIdentificacaoChat.NOME_EMAIL_OBRIGATORIO, resp.getModoIdentificacao());
+        assertEquals(ModoIdentificacaoChat.NOME_EMAIL_OBRIGATORIO, existente.getModoIdentificacao());
     }
 }

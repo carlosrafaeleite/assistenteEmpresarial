@@ -1,5 +1,7 @@
 package com.assistente.empresarial.dto;
 
+import com.assistente.empresarial.enuns.ModoIdentificacaoChat;
+
 import java.util.UUID;
 
 public class WidgetConfigResponseDTO {
@@ -15,6 +17,7 @@ public class WidgetConfigResponseDTO {
     private String tomVoz;
     private String nomeBot;
     private boolean protegidoPorSenha;
+    private ModoIdentificacaoChat modoIdentificacao;
 
     public WidgetConfigResponseDTO() {
     }
@@ -105,5 +108,13 @@ public class WidgetConfigResponseDTO {
 
     public void setProtegidoPorSenha(boolean protegidoPorSenha) {
         this.protegidoPorSenha = protegidoPorSenha;
+    }
+
+    public ModoIdentificacaoChat getModoIdentificacao() {
+        return modoIdentificacao;
+    }
+
+    public void setModoIdentificacao(ModoIdentificacaoChat modoIdentificacao) {
+        this.modoIdentificacao = modoIdentificacao;
     }
 }

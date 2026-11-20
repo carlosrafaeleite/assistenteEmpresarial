@@ -1,5 +1,6 @@
 package com.assistente.empresarial.dto;
 
+import com.assistente.empresarial.enuns.ModoIdentificacaoChat;
 import jakarta.validation.constraints.NotBlank;
 
 public class AssistenteRequestDTO {
@@ -27,6 +28,8 @@ public class AssistenteRequestDTO {
 	private String slug;
 
 	private String senha;
+
+	private ModoIdentificacaoChat modoIdentificacao;
 
 	public AssistenteRequestDTO() {}
 
@@ -116,5 +119,13 @@ public class AssistenteRequestDTO {
 
 	public void setSenha(String senha) {
 		this.senha = senha;
+	}
+
+	public ModoIdentificacaoChat getModoIdentificacao() {
+		return modoIdentificacao;
+	}
+
+	public void setModoIdentificacao(ModoIdentificacaoChat modoIdentificacao) {
+		this.modoIdentificacao = modoIdentificacao;
 	}
 }

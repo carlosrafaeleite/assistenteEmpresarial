@@ -2,6 +2,7 @@ package com.assistente.empresarial.service;
 
 import com.assistente.empresarial.dto.AssistenteRequestDTO;
 import com.assistente.empresarial.dto.AssistenteResponseDTO;
+import com.assistente.empresarial.enuns.ModoIdentificacaoChat;
 import com.assistente.empresarial.exception.BusinessException;
 import com.assistente.empresarial.exception.ResourceNotFoundException;
 import com.assistente.empresarial.model.Assistente;
@@ -87,6 +88,12 @@ public class AssistenteService {
             assistente.setSenha(null);
         }
 
+        assistente.setModoIdentificacao(
+                request.getModoIdentificacao() != null
+                        ? request.getModoIdentificacao()
+                        : ModoIdentificacaoChat.NOME_CONTATO_OPCIONAL
+        );
+
         Assistente salvo = assistenteRepository.save(assistente);
         return toDTO(salvo);
     }
@@ -131,6 +138,7 @@ public class AssistenteService {
         if (request.getAvatarUrl() != null) assistente.setAvatarUrl(request.getAvatarUrl());
         if (request.getMensagemBoasVindas() != null) assistente.setMensagemBoasVindas(request.getMensagemBoasVindas());
         if (request.getTomVoz() != null) assistente.setTomVoz(request.getTomVoz());
+        if (request.getModoIdentificacao() != null) assistente.setModoIdentificacao(request.getModoIdentificacao());
 
         assistente.setAtivo(request.isAtivo());
         assistente.setUpdatedAt(LocalDateTime.now());
@@ -150,9 +158,17 @@ public class AssistenteService {
         assistenteRepository.save(assistente);
     }
 
+    public AssistenteResponseDTO alterarModoIdentificacao(UUID id, ModoIdentificacaoChat modo) {
+        Assistente assistente = buscarEntidadeSegura(id);
+        assistente.setModoIdentificacao(modo != null ? modo : ModoIdentificacaoChat.NOME_CONTATO_OPCIONAL);
+        assistente.setUpdatedAt(LocalDateTime.now());
+        return toDTO(assistenteRepository.save(assistente));
+    }
+
     private AssistenteResponseDTO toDTO(Assistente assistente) {
         AssistenteResponseDTO dto = modelMapper.map(assistente, AssistenteResponseDTO.class);
         dto.setProtegidoPorSenha(assistente.temSenha());
+        dto.setModoIdentificacao(assistente.getModoIdentificacao());
         return dto;
     }
 

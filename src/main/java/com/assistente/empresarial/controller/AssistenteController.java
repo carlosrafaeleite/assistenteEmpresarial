@@ -3,6 +3,7 @@ package com.assistente.empresarial.controller;
 import com.assistente.empresarial.dto.AssistenteRequestDTO;
 import com.assistente.empresarial.dto.AssistenteResponseDTO;
 import com.assistente.empresarial.dto.AssistenteSenhaDTO;
+import com.assistente.empresarial.enuns.ModoIdentificacaoChat;
 import com.assistente.empresarial.service.AssistenteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -47,6 +49,16 @@ public class AssistenteController {
     public ResponseEntity<Void> alterarSenha(@PathVariable UUID id, @RequestBody AssistenteSenhaDTO request) {
         assistenteService.alterarSenha(id, request != null ? request.getSenha() : null);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/identificacao")
+    public ResponseEntity<AssistenteResponseDTO> alterarModoIdentificacao(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        String modoStr = body != null ? body.get("modoIdentificacao") : null;
+        return ResponseEntity.ok(
+                assistenteService.alterarModoIdentificacao(id, ModoIdentificacaoChat.fromString(modoStr))
+        );
     }
 
     @DeleteMapping("/{id}")

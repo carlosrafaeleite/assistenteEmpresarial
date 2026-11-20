@@ -1,5 +1,6 @@
 package com.assistente.empresarial.model;
 
+import com.assistente.empresarial.enuns.ModoIdentificacaoChat;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -53,6 +54,10 @@ public class Assistente {
 
 	@Column(name = "senha")
 	private String senha;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "modo_identificacao", length = 40, columnDefinition = "varchar(40) default 'NOME_CONTATO_OPCIONAL'")
+	private ModoIdentificacaoChat modoIdentificacao = ModoIdentificacaoChat.NOME_CONTATO_OPCIONAL;
 
 	public Assistente() {
 	}
@@ -179,5 +184,13 @@ public class Assistente {
 
 	public boolean temSenha() {
 		return senha != null && !senha.trim().isEmpty();
+	}
+
+	public ModoIdentificacaoChat getModoIdentificacao() {
+		return modoIdentificacao != null ? modoIdentificacao : ModoIdentificacaoChat.NOME_CONTATO_OPCIONAL;
+	}
+
+	public void setModoIdentificacao(ModoIdentificacaoChat modoIdentificacao) {
+		this.modoIdentificacao = modoIdentificacao != null ? modoIdentificacao : ModoIdentificacaoChat.NOME_CONTATO_OPCIONAL;
 	}
 }

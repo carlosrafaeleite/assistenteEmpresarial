@@ -47,6 +47,12 @@ public class SlackWebhookService {
         String nomeCliente = (conversa != null && conversa.getClienteNome() != null && !conversa.getClienteNome().isBlank())
                 ? conversa.getClienteNome()
                 : "Visitante no Site";
+        String contatoCliente = (conversa != null && conversa.getClienteEmail() != null && !conversa.getClienteEmail().isBlank())
+                ? conversa.getClienteEmail().trim()
+                : null;
+        String linhaContato = contatoCliente != null
+                ? "• *Contato / E-mail:* " + escaparJson(contatoCliente) + "\n"
+                : "";
         String conversaIdStr = conversa != null && conversa.getId() != null ? conversa.getId().toString() : "";
         String linkAtendimento = frontendBaseUrl + "/dashboard/atendimento"
                 + (!conversaIdStr.isEmpty() ? "?conversaId=" + conversaIdStr : "");
@@ -54,11 +60,13 @@ public class SlackWebhookService {
         String textoFormatado = String.format(
                 ":rotating_light: *Novo Cliente Aguardando Atendimento Humano!* (%s)\n" +
                 "• *Cliente:* %s\n" +
+                "%s" +
                 "• *Última mensagem:* _\"%s\"_\n" +
                 "• *Protocolo:* `%s`\n" +
                 ":point_right: *<%s|Clique aqui para abrir o Painel e Assumir a Conversa>*",
                 escaparJson(nomeEmpresa),
                 escaparJson(nomeCliente),
+                linhaContato,
                 escaparJson(mensagemCliente != null ? mensagemCliente : "Solicitou falar com atendente"),
                 escaparJson(conversaIdStr.length() >= 8 ? conversaIdStr.substring(0, 8) : conversaIdStr),
                 linkAtendimento
