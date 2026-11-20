@@ -21,8 +21,8 @@ public class LlmRouterService {
 
     private static final Logger log = LoggerFactory.getLogger(LlmRouterService.class);
 
-    @Value("${app.llm.provider:OPENAI}")
-    private String defaultProviderProperty;
+    @Value("${app.llm.provider:GEMINI}")
+    private String defaultProviderProperty = "GEMINI";
 
     private final OpenAiChatService openAiChatService;
     private final GeminiChatService geminiChatService;
@@ -41,8 +41,8 @@ public class LlmRouterService {
 
     @PostConstruct
     public void init() {
-        services.put(LlmProvider.OPENAI, openAiChatService);
         services.put(LlmProvider.GEMINI, geminiChatService);
+        services.put(LlmProvider.OPENAI, openAiChatService);
         services.put(LlmProvider.OLLAMA, ollamaChatService);
 
         this.activeProvider = LlmProvider.fromString(defaultProviderProperty);
@@ -82,8 +82,7 @@ public class LlmRouterService {
             }
         }
 
-        // Se nenhum estiver pronto, retorna o preferido para que lance a exceção detalhada com instruções
-        return preferredService != null ? preferredService : openAiChatService;
+        return preferredService != null ? preferredService : geminiChatService;
     }
 
     public ChatLanguageModel getActiveModel() {

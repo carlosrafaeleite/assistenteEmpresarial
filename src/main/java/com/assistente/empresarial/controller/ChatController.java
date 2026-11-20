@@ -14,8 +14,10 @@ import com.assistente.empresarial.service.ChatService;
 import com.assistente.empresarial.service.StructuredOutputService;
 import com.assistente.empresarial.service.llm.LlmRouterService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.HashMap;
 import java.util.List;
@@ -92,6 +94,40 @@ public class ChatController {
     @GetMapping("/conversas/{id}/mensagens")
     public ResponseEntity<List<Mensagem>> listarMensagens(@PathVariable UUID id) {
         return ResponseEntity.ok(chatService.listarMensagensConversa(id));
+    }
+
+    // =========================================================================
+    // Endpoints do Painel de Transbordo Humano em Tempo Real (SSE)
+    // =========================================================================
+
+    @GetMapping(value = "/transbordo/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamTransbordoPainel() {
+        return chatService.conectarPainelTransbordoEmpresa();
+    }
+
+    @GetMapping("/transbordo/fila")
+    public ResponseEntity<List<Conversa>> listarFilaTransbordo() {
+        return ResponseEntity.ok(chatService.listarFilaTransbordoHumano());
+    }
+
+    @PostMapping("/conversas/{id}/assumir")
+    public ResponseEntity<Conversa> assumirAtendimentoHumano(@PathVariable UUID id) {
+        return ResponseEntity.ok(chatService.assumirAtendimentoHumano(id));
+    }
+
+    @PostMapping("/conversas/{id}/responder-humano")
+    public ResponseEntity<Mensagem> responderAtendenteHumano(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> payload) {
+        String mensagem = payload != null ? payload.get("mensagem") : "";
+        return ResponseEntity.ok(chatService.responderComoAtendenteHumano(id, mensagem));
+    }
+
+    @PostMapping("/conversas/{id}/encerrar-humano")
+    public ResponseEntity<Conversa> encerrarAtendimentoHumano(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "false") boolean devolverParaBot) {
+        return ResponseEntity.ok(chatService.encerrarAtendimentoHumano(id, devolverParaBot));
     }
 
     @GetMapping("/widget/{empresaSlug}")

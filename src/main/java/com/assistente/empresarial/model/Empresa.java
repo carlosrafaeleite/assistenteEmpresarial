@@ -1,7 +1,7 @@
 package com.assistente.empresarial.model;
 
+import com.assistente.empresarial.enuns.PlanoEmpresa;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Pattern;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -40,6 +40,19 @@ public class Empresa {
 
 	@Column(name = "nome_bot")
 	private String nomeBot = "Assistente IA";
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "plano", columnDefinition = "varchar(50) default 'SIMPLES'")
+	private PlanoEmpresa plano = PlanoEmpresa.SIMPLES;
+
+	@Column(name = "creditos_tokens", columnDefinition = "bigint default 100000")
+	private Long creditosTokens = PlanoEmpresa.SIMPLES.getCreditosIniciais();
+
+	@Column(name = "tokens_consumidos", columnDefinition = "bigint default 0")
+	private Long tokensConsumidos = 0L;
+
+	@Column(name = "slack_webhook_url", length = 500)
+	private String slackWebhookUrl;
 
 	// Construtores, Getters e Setters
 	public Empresa() {
@@ -123,5 +136,57 @@ public class Empresa {
 
 	public void setNomeBot(String nomeBot) {
 		this.nomeBot = nomeBot;
+	}
+
+	public PlanoEmpresa getPlano() {
+		return plano != null ? plano : PlanoEmpresa.SIMPLES;
+	}
+
+	public void setPlano(PlanoEmpresa plano) {
+		this.plano = plano != null ? plano : PlanoEmpresa.SIMPLES;
+	}
+
+	public long getCreditosTokens() {
+		return creditosTokens != null ? creditosTokens : PlanoEmpresa.SIMPLES.getCreditosIniciais();
+	}
+
+	public void setCreditosTokens(long creditosTokens) {
+		this.creditosTokens = Math.max(0L, creditosTokens);
+	}
+
+	public long getTokensConsumidos() {
+		return tokensConsumidos != null ? tokensConsumidos : 0L;
+	}
+
+	public void setTokensConsumidos(long tokensConsumidos) {
+		this.tokensConsumidos = Math.max(0L, tokensConsumidos);
+	}
+
+	public String getSlackWebhookUrl() {
+		return slackWebhookUrl;
+	}
+
+	public void setSlackWebhookUrl(String slackWebhookUrl) {
+		this.slackWebhookUrl = slackWebhookUrl;
+	}
+
+	public int getMaxArquivosPermitidos() {
+		return getPlano().getMaxArquivos();
+	}
+
+	public long getLimiteArmazenamentoBytes() {
+		return getPlano().getMaxBytesTotal();
+	}
+
+	/**
+	 * Debita tokens consumidos exclusivamente durante o fluxo de conversação no chat.
+	 */
+	public void debitarTokensChat(long tokens) {
+		if (tokens <= 0) {
+			return;
+		}
+		this.tokensConsumidos = getTokensConsumidos() + tokens;
+		this.creditosTokens = Math.max(0L, getCreditosTokens() - tokens);
+		this.updatedAt = LocalDateTime.now();
 	}
 }

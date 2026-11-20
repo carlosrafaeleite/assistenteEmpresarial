@@ -1,6 +1,6 @@
 package com.assistente.empresarial.dto;
 
-import jakarta.persistence.Column;
+import com.assistente.empresarial.enuns.PlanoEmpresa;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,8 +14,13 @@ public class EmpresaResponseDTO {
 	private boolean status;
 	private LocalDateTime createdAt;
 	private String nomeBot;
+	private PlanoEmpresa plano;
+	private long creditosTokens;
+	private long tokensConsumidos;
+	private int maxArquivos;
+	private long limiteArmazenamentoBytes;
+	private String slackWebhookUrl;
 
-	// Getters e Setters
 	public UUID getId() {
 		return id;
 	}
@@ -78,5 +83,53 @@ public class EmpresaResponseDTO {
 
 	public void setNomeBot(String nomeBot) {
 		this.nomeBot = nomeBot;
+	}
+
+	public PlanoEmpresa getPlano() {
+		return plano;
+	}
+
+	public void setPlano(PlanoEmpresa plano) {
+		this.plano = plano;
+	}
+
+	public long getCreditosTokens() {
+		return creditosTokens;
+	}
+
+	public void setCreditosTokens(long creditosTokens) {
+		this.creditosTokens = creditosTokens;
+	}
+
+	public long getTokensConsumidos() {
+		return tokensConsumidos;
+	}
+
+	public void setTokensConsumidos(long tokensConsumidos) {
+		this.tokensConsumidos = tokensConsumidos;
+	}
+
+	public int getMaxArquivos() {
+		return maxArquivos;
+	}
+
+	public void setMaxArquivos(int maxArquivos) {
+		this.maxArquivos = maxArquivos;
+	}
+
+	public long getLimiteArmazenamentoBytes() {
+		return limiteArmazenamentoBytes;
+	}
+
+	public void setLimiteArmazenamentoBytes(long limiteArmazenamentoBytes) {
+		this.limiteArmazenamentoBytes = limiteArmazenamentoBytes;
+	}
+
+	public String getSlackWebhookUrl() {
+		return slackWebhookUrl;
+	}
+
+	public void setSlackWebhookUrl(String slackWebhookUrl) {
+		this.slackWebhookUrl = slackWebhookUrl;
 	}
 }

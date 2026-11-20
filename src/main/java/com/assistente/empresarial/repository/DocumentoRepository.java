@@ -13,7 +13,12 @@ public interface DocumentoRepository extends JpaRepository<Documento, UUID> {
 
     List<Documento> findByEmpresaId(UUID empresaId);
 
+    long countByEmpresaId(UUID empresaId);
+
     List<Documento> findByEmpresaIdAndAssistenteId(UUID empresaId, UUID assistenteId);
 
     Optional<Documento> findByIdAndEmpresaId(UUID id, UUID empresaId);
+
+    Optional<Documento> findByEmpresaIdAndAssistenteIdAndNomeOriginalIgnoreCase(
+            UUID empresaId, UUID assistenteId, String nomeOriginal);
 }

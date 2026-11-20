@@ -14,6 +14,14 @@ services:
       - corporate_db_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  rabbitmq-ai:
+    image: rabbitmq:3.13-management-alpine
+    container_name: corporate-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+
 volumes:
   corporate_db_data:
     name: corporate_ai_postgres_data

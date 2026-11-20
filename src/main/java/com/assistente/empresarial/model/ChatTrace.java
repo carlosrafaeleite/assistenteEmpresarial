@@ -1,41 +1,104 @@
 package com.assistente.empresarial.model;
 
 import com.assistente.empresarial.enuns.LlmProvider;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+@Entity
+@Table(name = "chat_traces")
 public class ChatTrace {
 
+    @Id
+    @Column(name = "trace_id", length = 64)
     private String traceId;
+
+    @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp;
+
+    @Column(name = "empresa_id")
     private UUID empresaId;
+
+    @Column(name = "assistente_id")
     private UUID assistenteId;
+
+    @Column(name = "canal", length = 40)
     private String canal;
 
+    @Column(name = "guardrail_time_ms")
     private long guardrailTimeMs;
+
+    @Column(name = "cache_check_time_ms")
     private long cacheCheckTimeMs;
+
+    @Column(name = "rag_retrieval_time_ms")
     private long ragRetrievalTimeMs;
+
+    @Column(name = "llm_inference_time_ms")
     private long llmInferenceTimeMs;
+
+    @Column(name = "tool_execution_time_ms")
     private long toolExecutionTimeMs;
+
+    @Column(name = "total_latency_ms")
     private long totalLatencyMs;
 
+    @Column(name = "input_tokens")
     private int inputTokens;
+
+    @Column(name = "output_tokens")
     private int outputTokens;
+
+    @Column(name = "total_tokens")
     private int totalTokens;
+
+    @Column(name = "estimated_cost_usd")
     private double estimatedCostUsd;
 
+    @Column(name = "cache_hit")
     private boolean cacheHit;
+
+    @Column(name = "fallback_triggered")
     private boolean fallbackTriggered;
+
+    @Column(name = "tools_used_raw", columnDefinition = "TEXT")
+    private String toolsUsedRaw;
+
+    @Column(name = "guardrail_violations_raw", columnDefinition = "TEXT")
+    private String guardrailViolationsRaw;
+
+    @Transient
     private List<String> toolsUsed = new ArrayList<>();
+
+    @Transient
     private List<String> guardrailViolations = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider_used", length = 30)
     private LlmProvider providerUsed;
 
     public ChatTrace() {
         this.traceId = UUID.randomUUID().toString();
         this.timestamp = LocalDateTime.now();
+    }
+
+    @PostLoad
+    public void postLoad() {
+        if (toolsUsedRaw != null && !toolsUsedRaw.isBlank()) {
+            this.toolsUsed = Arrays.stream(toolsUsedRaw.split("\\|\\|"))
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toCollection(ArrayList::new));
+        }
+        if (guardrailViolationsRaw != null && !guardrailViolationsRaw.isBlank()) {
+            this.guardrailViolations = Arrays.stream(guardrailViolationsRaw.split("\\|\\|"))
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toCollection(ArrayList::new));
+        }
     }
 
     public String getTraceId() {
@@ -179,7 +242,8 @@ public class ChatTrace {
     }
 
     public void setToolsUsed(List<String> toolsUsed) {
-        this.toolsUsed = toolsUsed;
+        this.toolsUsed = toolsUsed != null ? toolsUsed : new ArrayList<>();
+        this.toolsUsedRaw = this.toolsUsed.isEmpty() ? null : String.join("||", this.toolsUsed);
     }
 
     public List<String> getGuardrailViolations() {
@@ -187,7 +251,8 @@ public class ChatTrace {
     }
 
     public void setGuardrailViolations(List<String> guardrailViolations) {
-        this.guardrailViolations = guardrailViolations;
+        this.guardrailViolations = guardrailViolations != null ? guardrailViolations : new ArrayList<>();
+        this.guardrailViolationsRaw = this.guardrailViolations.isEmpty() ? null : String.join("||", this.guardrailViolations);
     }
 
     public LlmProvider getProviderUsed() {

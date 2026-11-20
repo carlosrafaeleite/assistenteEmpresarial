@@ -11,6 +11,10 @@ public class EmpresaUpdateRequestDTO {
 
     private String nomeBot;
 
+    private String plano;
+
+    private String slackWebhookUrl;
+
     public EmpresaUpdateRequestDTO() {
     }
 
@@ -42,5 +46,21 @@ public class EmpresaUpdateRequestDTO {
 
     public void setNomeBot(String nomeBot) {
         this.nomeBot = nomeBot;
+    }
+
+    public String getPlano() {
+        return plano;
+    }
+
+    public void setPlano(String plano) {
+        this.plano = plano;
+    }
+
+    public String getSlackWebhookUrl() {
+        return slackWebhookUrl;
+    }
+
+    public void setSlackWebhookUrl(String slackWebhookUrl) {
+        this.slackWebhookUrl = slackWebhookUrl;
     }
 }

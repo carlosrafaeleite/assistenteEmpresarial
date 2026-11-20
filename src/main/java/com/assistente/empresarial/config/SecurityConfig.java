@@ -34,7 +34,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults()) // Ativa o suporte ao CORS globalmente
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -42,18 +42,15 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/publico/**",
                                 "/api/empresas/registrar",
+                                "/api/chat/widget/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/",
                                 "/index.html",
                                 "/widget.js",
-                                "/favicon.ico",
-                                "/api/chat/widget/**",
-                                "/api/assistentes/**",
-                                "/api/observability/**",
-                                "/api/evals/**"
-                         ).permitAll()
+                                "/favicon.ico"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class)
@@ -65,13 +62,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); // Porta do seu React/Vite
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:5173", "*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration); // Aplica a regra a toda a API
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 }
